@@ -3,6 +3,7 @@
 
 #include "AIQueue.h"
 #include "Engine.h"
+#include "BaseUnit.h"
 
 UAIQueue::UAIQueue() {}
 
@@ -18,6 +19,7 @@ FAction UAIQueue::Peek() {
 }
 
 void UAIQueue::Insert(FAction Action) {
+	check(Owner != nullptr);
 	Queue.Emplace(Action);
 	int pos = Queue.Num() - 1;
 	while (pos != 0) {
@@ -40,6 +42,10 @@ void UAIQueue::Insert(FAction Action) {
 		else {
 			pos = 0;
 		}
+	}
+	ABaseUnit* Unit = Cast<ABaseUnit>(Owner);
+	if (Unit != nullptr) {
+		Unit->CheckActions();
 	}
 }
 

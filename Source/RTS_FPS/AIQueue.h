@@ -58,7 +58,12 @@ public:
 
 	FString Debug_ListActions();
 
+	void SetOwner(AActor* in) { Owner = in; }
+
 protected:
 	UPROPERTY()
 		TArray<FAction> Queue;
+
+private:
+	AActor* Owner;
 };

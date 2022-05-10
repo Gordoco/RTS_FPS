@@ -64,6 +64,8 @@ public:
 
 	bool DoneCurrentAction();
 
+	void CheckActions();
+
 	UFUNCTION(BlueprintPure, Category = "Brain")
 		UBaseBrain* GetBrain() { return Brain; }
 

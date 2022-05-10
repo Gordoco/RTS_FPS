@@ -11,7 +11,7 @@
 ABaseUnit::ABaseUnit()
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 	AIControllerClass = ABaseUnitController::StaticClass();
 
 	bReplicates = true;
@@ -29,26 +29,29 @@ void ABaseUnit::AddAction(FAction Action) {
 void ABaseUnit::RecieveAction() {
 	check(HasAuthority());
 	if (!ActionQue->IsEmpty()) {
-		if (CurrentAction.Action_Type != "") {
+		/*
+		Retrieve next action from queue (Based on priority)
+		*/
+		if (!DoneCurrentAction()) {
+
 			if (CurrentAction.Priority < ActionQue->Peek().Priority) {
+				/*
+				Check and re-shuffle current action with highest priority
+				*/
 				FAction temp = ActionQue->DeleteMax();
 				ActionQue->Insert(CurrentAction);
 				CurrentAction = temp;
-				//GEngine->AddOnScreenDebugMessage(1, 5.f, FColor::Blue, "RunActionCalled: ActionType != \"\"");
 				RunAction();
 			}
 		}
 		else {
+
 			CurrentAction = ActionQue->DeleteMax();
-			//GEngine->AddOnScreenDebugMessage(1, 5.f, FColor::Blue, "RunActionCalled: ActionType == \"\"");
 			RunAction();
 		}
 	}
 	else {
 		Brain->FinishedCycle();
-		if (!ActionQue->IsEmpty() && DoneCurrentAction()) {
-			RecieveAction();
-		}
 	}
 }
 
@@ -91,9 +94,6 @@ void ABaseUnit::FinishAction() {
 
 void ABaseUnit::FinishMovement(const FPathFollowingResult& Result) {
 	if (HasAuthority()) {
-		if (CurrentAction.ActionData->IsValidLowLevel()) {
-			CurrentAction.ActionData->ConditionalBeginDestroy();
-		}
 		FinishAction();
 		/*if (Result.Code == EPathFollowingResult::Success) {
 
@@ -114,6 +114,7 @@ void ABaseUnit::BeginPlay()
 {
 	Super::BeginPlay();
 	SpawnDefaultController();
+
 	/*if (HasAuthority()) {
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Server: I AM A UNIT");
 	}
@@ -124,17 +125,26 @@ void ABaseUnit::BeginPlay()
 	//Server Side Setup
 	if (HasAuthority()) {
 		ActionQue = NewObject<UAIQueue>();
+		ActionQue->SetOwner(this);
 		Brain = NewObject<UBaseBrain>(this, BrainClass);
 		Brain->SetOwner(this);
 		RecieveAction();
 	}
 }
 
+void ABaseUnit::CheckActions() {
+	RecieveAction();
+}
+
 // Called every frame
 void ABaseUnit::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
+	if (HasAuthority()) {
+		if (CurrentAction.ActionData->IsValidLowLevel()) {
+			GEngine->AddOnScreenDebugMessage(1, 5.f, FColor::Red, CurrentAction.Action_Type);
+		}
+	}
 	//Server Side Action Handling
 	/*
 	TO DO: Move this away from Tick based handling (Analyze performance)
