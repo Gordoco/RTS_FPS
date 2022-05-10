@@ -11,7 +11,7 @@
 ABaseUnit::ABaseUnit()
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 	AIControllerClass = ABaseUnitController::StaticClass();
 
 	bReplicates = true;
@@ -140,11 +140,11 @@ void ABaseUnit::CheckActions() {
 void ABaseUnit::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	if (HasAuthority()) {
+	/*if (HasAuthority()) {
 		if (CurrentAction.ActionData->IsValidLowLevel()) {
 			GEngine->AddOnScreenDebugMessage(1, 5.f, FColor::Red, CurrentAction.Action_Type);
 		}
-	}
+	}*/
 	//Server Side Action Handling
 	/*
 	TO DO: Move this away from Tick based handling (Analyze performance)

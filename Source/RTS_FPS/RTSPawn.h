@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
+#include "Net/UnrealNetwork.h"
+#include "BaseBuilding.h"
 #include "RTSPawn.generated.h"
 
 UCLASS()
@@ -16,7 +18,7 @@ private:
 	/*
 	UNIT TESTS********************************************
 	*/
-
+	void DebugCallsMovement(FVector2D Screen, FVector2D Mouse, float val1, float val2, float Margin);
 
 #endif
 
@@ -24,9 +26,14 @@ public:
 	// Sets default values for this pawn's properties
 	ARTSPawn();
 
+	void GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const override;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "HUD")
+		void CreateHUD();
 
 public:	
 	// Called every frame
@@ -34,5 +41,35 @@ public:
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Input")
+		float MovementSpeed = 1000.f;
+
+	UFUNCTION(BlueprintCallable, Category = "Buildings")
+		bool AttemptToBuild(TSubclassOf<ABaseBuilding> BuildingClass);
+
+private:
+	UPROPERTY(ReplicatedUsing = OnRep_SetLocation)
+		FVector PlayerLocation;
+
+	UFUNCTION()
+		void OnRep_SetLocation();
+
+	UFUNCTION(Server, WithValidation, Unreliable)
+		void SetMyLocation(FVector Location);
+
+	UFUNCTION(Client, Unreliable)
+		void CreateTemplateBuilding(TSubclassOf<ABaseBuilding> BuildingClass);
+
+	APlayerController* GetPC();
+
+	FVector MovementDirection = FVector::ZeroVector;
+
+	FVector2D GetScreenSize();
+
+	FVector2D GetMousePosition();
+
+	void CalculateMovement();
+
 
 };
