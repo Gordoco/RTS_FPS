@@ -6,6 +6,7 @@
 #include "GameFramework/Pawn.h"
 #include "Net/UnrealNetwork.h"
 #include "BaseBuilding.h"
+#include "TemplateBuilding.h"
 #include "RTSPawn.generated.h"
 
 UCLASS()
@@ -43,7 +44,7 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Input")
-		float MovementSpeed = 1000.f;
+		float MovementSpeed = 2000.f;
 
 	UFUNCTION(BlueprintCallable, Category = "Buildings")
 		bool AttemptToBuild(TSubclassOf<ABaseBuilding> BuildingClass);
@@ -55,11 +56,17 @@ private:
 	UFUNCTION()
 		void OnRep_SetLocation();
 
+	UFUNCTION()
+		void OnRep_CurrentTemplateClass();
+
 	UFUNCTION(Server, WithValidation, Unreliable)
 		void SetMyLocation(FVector Location);
 
+	UFUNCTION(Server, WithValidation, Unreliable)
+		void Server_CreateBuilding(TSubclassOf<ABaseBuilding> BuildingClass);
+
 	UFUNCTION(Client, Unreliable)
-		void CreateTemplateBuilding(TSubclassOf<ABaseBuilding> BuildingClass);
+		void CreateTemplateBuilding();
 
 	APlayerController* GetPC();
 
@@ -71,5 +78,12 @@ private:
 
 	void CalculateMovement();
 
+	//NULL ON CLIENT ALWAYS
+	ABaseBuilding* Server_CurrentBuilding;
 
+	UPROPERTY(ReplicatedUsing = OnRep_CurrentTemplateClass)
+		TSubclassOf<ATemplateBuilding> CurrentTemplateClass;
+
+	UPROPERTY()
+		ATemplateBuilding* CurrentTemplate;
 };

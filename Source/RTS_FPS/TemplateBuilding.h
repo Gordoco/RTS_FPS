@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Components/StaticMeshComponent.h"
 #include "TemplateBuilding.generated.h"
 
 UCLASS()
@@ -19,8 +20,40 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Components")
+		UStaticMeshComponent* Mesh;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Components")
+		UMaterial* PlacementMat;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Components")
+		UMaterial* ErrorMat;
+
+	UFUNCTION()
+		void BeginOverlap(UPrimitiveComponent* OverlappedComponent,
+			AActor* OtherActor,
+			UPrimitiveComponent* OtherComp,
+			int32 OtherBodyIndex,
+			bool bFromSweep,
+			const FHitResult& SweepResult);
+
+	UFUNCTION()
+		void OnEndOverlap(UPrimitiveComponent* OverlappedComponent,
+			AActor* OtherActor,
+			UPrimitiveComponent* OtherComp,
+			int32 OtherBodyIndex);
+
+private:
+	bool bFollowMouse = false;
+
+	FVector CalculateMouseFollowLocation();
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+	
+	APlayerController* PC;
+
+	void SetFollowMouse(APlayerController* inController);
 
 };

@@ -27,7 +27,7 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
 		float BuildingCost = 0.f;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Template")
 		TSubclassOf<ATemplateBuilding> TemplateClass;
 
 };

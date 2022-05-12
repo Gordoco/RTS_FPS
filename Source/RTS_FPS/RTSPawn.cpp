@@ -3,7 +3,6 @@
 
 #include "RTSPawn.h"
 #include "Engine.h"
-#include "TemplateBuilding.h"
 #include "Runtime/Core/Public/Misc/AssertionMacros.h"
 
 // Sets default values
@@ -19,6 +18,7 @@ void ARTSPawn::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifeti
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ARTSPawn, PlayerLocation);
+	DOREPLIFETIME(ARTSPawn, CurrentTemplateClass);
 }
 
 // Called when the game starts or when spawned
@@ -43,16 +43,43 @@ bool ARTSPawn::AttemptToBuild(TSubclassOf<ABaseBuilding> BuildingClass) {
 	To Do: Add valdation code for building cost, already placing a structure, valid building subclass, etc.
 	*/
 	if (IsLocallyControlled()) {
-		CreateTemplateBuilding(BuildingClass);
+		Server_CreateBuilding(BuildingClass);
+		if (HasAuthority()) {
+			OnRep_CurrentTemplateClass();
+		}
 		return true;
 	}
 	return false;
 }
 
-void ARTSPawn::CreateTemplateBuilding_Implementation(TSubclassOf<ABaseBuilding> BuildingClass) {
+bool ARTSPawn::Server_CreateBuilding_Validate(TSubclassOf<ABaseBuilding> BuildingClass) {
+	return BuildingClass != nullptr;
+}
+
+void ARTSPawn::Server_CreateBuilding_Implementation(TSubclassOf<ABaseBuilding> BuildingClass) {
+	check(HasAuthority());
+	check(Server_CurrentBuilding == nullptr);
+	if (Server_CurrentBuilding == nullptr) {
+		Server_CurrentBuilding = GetWorld()->SpawnActorDeferred<ABaseBuilding>(BuildingClass, FTransform());
+		CurrentTemplateClass = Server_CurrentBuilding->TemplateClass;
+	}
+}
+
+void ARTSPawn::OnRep_CurrentTemplateClass() {
+	CreateTemplateBuilding();
+	check(CurrentTemplate != nullptr && CurrentTemplateClass != nullptr);
+	if (CurrentTemplate != nullptr && CurrentTemplateClass != nullptr) {
+		CurrentTemplate->SetFollowMouse(GetPC());
+	}
+}
+
+void ARTSPawn::CreateTemplateBuilding_Implementation() {
 	check(GetWorld() != nullptr);
 	if (GetWorld() != nullptr) {
-		
+		check(CurrentTemplate == nullptr);
+		if (CurrentTemplate == nullptr) {
+			CurrentTemplate = GetWorld()->SpawnActor<ATemplateBuilding>(CurrentTemplateClass, FTransform());
+		}
 	}
 }
 
@@ -60,6 +87,14 @@ void ARTSPawn::CreateTemplateBuilding_Implementation(TSubclassOf<ABaseBuilding> 
 void ARTSPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	/*if (HasAuthority()) {
+		GEngine->AddOnScreenDebugMessage(88, 5.f, FColor::Orange, GetDebugName(CurrentBuilding));
+	}
+	else {
+		GEngine->AddOnScreenDebugMessage(89, 5.f, FColor::Red, GetDebugName(CurrentBuilding));
+	}*/
+
 	if (IsLocallyControlled()) {
 		CalculateMovement();
 		if (!MovementDirection.IsZero()) {
