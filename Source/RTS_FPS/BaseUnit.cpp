@@ -18,6 +18,10 @@ ABaseUnit::ABaseUnit()
 	SetReplicateMovement(true);
 }
 
+void ABaseUnit::Selected() {
+
+}
+
 void ABaseUnit::AddAction(FAction Action) {
 	check(Action.Action_Type != "");
 	check(HasAuthority());

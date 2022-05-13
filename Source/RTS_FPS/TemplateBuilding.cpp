@@ -12,6 +12,7 @@ ATemplateBuilding::ATemplateBuilding()
 	PrimaryActorTick.bCanEverTick = true;
 	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SMesh"));
 	RootComponent = Mesh;
+	Mesh->SetCollisionResponseToAllChannels(ECR_Overlap);
 	Mesh->OnComponentBeginOverlap.AddDynamic( this, &ATemplateBuilding::BeginOverlap );
 	Mesh->OnComponentEndOverlap.AddDynamic( this, &ATemplateBuilding::OnEndOverlap );
 }
@@ -36,6 +37,7 @@ void ATemplateBuilding::BeginOverlap(UPrimitiveComponent* OverlappedComponent,
 		Add Checks for appropriate overlap events
 	*/
 	Mesh->SetMaterial(0, ErrorMat);
+	bReadyToPlace = false;
 }
 
 void ATemplateBuilding::OnEndOverlap(UPrimitiveComponent* OverlappedComponent,
@@ -47,6 +49,7 @@ void ATemplateBuilding::OnEndOverlap(UPrimitiveComponent* OverlappedComponent,
 		Add Checks for appropriate overlap events
 	*/
 	Mesh->SetMaterial(0, PlacementMat);
+	bReadyToPlace = true;
 }
 
 // Called every frame

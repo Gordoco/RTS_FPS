@@ -16,6 +16,8 @@ public:
 	// Sets default values for this actor's properties
 	ATemplateBuilding();
 
+	void SetMesh(UStaticMesh* inMesh) { Mesh->SetStaticMesh(inMesh); }
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -55,5 +57,7 @@ public:
 	APlayerController* PC;
 
 	void SetFollowMouse(APlayerController* inController);
+
+	bool bReadyToPlace = true;
 
 };

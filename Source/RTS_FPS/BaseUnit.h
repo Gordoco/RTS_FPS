@@ -46,12 +46,18 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Brain")
 		TSubclassOf<UBaseBrain> BrainClass = UBaseBrain::StaticClass();
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Team")
+		int Team = 0;
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Actions")
 		void AddMovementAction(FVector Location, int prio);
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+	void Selected();
+
+	int GetTeam() { return Team; }
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;

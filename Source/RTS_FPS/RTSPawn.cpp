@@ -4,6 +4,7 @@
 #include "RTSPawn.h"
 #include "Engine.h"
 #include "Runtime/Core/Public/Misc/AssertionMacros.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 ARTSPawn::ARTSPawn()
@@ -19,6 +20,7 @@ void ARTSPawn::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifeti
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ARTSPawn, PlayerLocation);
 	DOREPLIFETIME(ARTSPawn, CurrentTemplateClass);
+	DOREPLIFETIME(ARTSPawn, BuildingMesh);
 }
 
 // Called when the game starts or when spawned
@@ -61,24 +63,31 @@ void ARTSPawn::Server_CreateBuilding_Implementation(TSubclassOf<ABaseBuilding> B
 	check(Server_CurrentBuilding == nullptr);
 	if (Server_CurrentBuilding == nullptr) {
 		Server_CurrentBuilding = GetWorld()->SpawnActorDeferred<ABaseBuilding>(BuildingClass, FTransform());
-		CurrentTemplateClass = Server_CurrentBuilding->TemplateClass;
+		if (Server_CurrentBuilding != nullptr) {
+			Server_CurrentBuilding->SetActorHiddenInGame(true);
+			BuildingMesh = Server_CurrentBuilding->GetFinalMesh();
+			//GEngine->AddOnScreenDebugMessage(72, 5.f, FColor::Green, "SERVER: Pre-Spawned Building");
+			CurrentTemplateClass = Server_CurrentBuilding->TemplateClass;
+		}
 	}
 }
 
 void ARTSPawn::OnRep_CurrentTemplateClass() {
-	CreateTemplateBuilding();
-	check(CurrentTemplate != nullptr && CurrentTemplateClass != nullptr);
-	if (CurrentTemplate != nullptr && CurrentTemplateClass != nullptr) {
-		CurrentTemplate->SetFollowMouse(GetPC());
+	if (CurrentTemplateClass != nullptr) {
+		CreateTemplateBuilding();
+		if (CurrentTemplate != nullptr) {
+			CurrentTemplate->SetFollowMouse(GetPC());
+		}
 	}
 }
 
 void ARTSPawn::CreateTemplateBuilding_Implementation() {
 	check(GetWorld() != nullptr);
 	if (GetWorld() != nullptr) {
-		check(CurrentTemplate == nullptr);
-		if (CurrentTemplate == nullptr) {
+		check(CurrentTemplate == nullptr && BuildingMesh != nullptr);
+		if (CurrentTemplate == nullptr && BuildingMesh != nullptr) {
 			CurrentTemplate = GetWorld()->SpawnActor<ATemplateBuilding>(CurrentTemplateClass, FTransform());
+			CurrentTemplate->SetMesh(BuildingMesh);
 		}
 	}
 }
@@ -138,7 +147,7 @@ void ARTSPawn::CalculateMovement() {
 	float val1 = 0;
 	float val2 = 0;
 
-	const float ScreenPercentage = 0.05;
+	const float ScreenPercentage = 0.03;
 	const float Margin = Screen.X * ScreenPercentage;
 
 	if (Mouse.X >= Screen.X - Margin){
@@ -158,7 +167,7 @@ void ARTSPawn::CalculateMovement() {
 	MovementDirection = (GetActorRightVector() * val1) + (GetActorForwardVector() * val2);
 
 	#ifdef UE_BUILD_DEBUG
-		DebugCallsMovement(Screen, Mouse, val1, val2, Margin);
+		//DebugCallsMovement(Screen, Mouse, val1, val2, Margin);
 	#endif
 
 }
@@ -205,6 +214,62 @@ FVector2D ARTSPawn::GetMousePosition() {
 void ARTSPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	PlayerInputComponent->BindAction("PrimaryAction", IE_Pressed, this, &ARTSPawn::PlayerClick);
 
+	PlayerInputComponent->BindAction("SecondaryAction", IE_Pressed, this, &ARTSPawn::PlayerRightClick);
 }
 
+void ARTSPawn::PlayerClick() 
+{
+	if (CheckPlacingBuilding() && IsLocallyControlled()) {
+		Server_FinalizeBuildingPlacement(CurrentTemplate->GetTransform());
+		CurrentTemplate->Destroy();
+		CurrentTemplate = nullptr;
+	}
+	else {
+		DrawSelectionBox();
+	}
+}
+
+void ARTSPawn::DrawSelectionBox() 
+{
+	//Add in combination with unit selection
+	APlayerController* PC = GetPC();
+	check(PC != nullptr);
+	if (PC != nullptr) {
+
+		//Generic Single Select (PURELY CLIENT SIDE)*****
+		FHitResult Hit;
+		PC->GetHitResultUnderCursorByChannel(ETraceTypeQuery::TraceTypeQuery1, false, Hit);
+		ABaseUnit* HitUnit = Cast<ABaseUnit>(Hit.GetActor());
+		if (HitUnit != nullptr) {
+			if (HitUnit->GetTeam() == Team) {
+				SelectedUnits.Add(HitUnit);
+				HitUnit->Selected();
+			}
+		}
+		//***********************************************
+
+
+	}
+}
+
+bool ARTSPawn::Server_FinalizeBuildingPlacement_Validate(FTransform Transform) 
+{
+	//Add code to validate Transform
+	return (Server_CurrentBuilding != nullptr);
+}
+
+void ARTSPawn::Server_FinalizeBuildingPlacement_Implementation(FTransform Transform)
+{
+	UGameplayStatics::FinishSpawningActor(Server_CurrentBuilding, Transform);
+	Server_CurrentBuilding->BeginConstruction();
+	Server_CurrentBuilding->SetActorHiddenInGame(false);
+	Server_CurrentBuilding = nullptr;
+	CurrentTemplateClass = nullptr;
+}
+
+void ARTSPawn::PlayerRightClick() 
+{
+
+}

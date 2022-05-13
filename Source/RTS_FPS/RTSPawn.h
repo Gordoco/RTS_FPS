@@ -6,6 +6,8 @@
 #include "GameFramework/Pawn.h"
 #include "Net/UnrealNetwork.h"
 #include "BaseBuilding.h"
+#include "BaseUnit.h"
+#include "Components/StaticMeshComponent.h"
 #include "TemplateBuilding.h"
 #include "RTSPawn.generated.h"
 
@@ -35,6 +37,9 @@ protected:
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "HUD")
 		void CreateHUD();
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Team")
+		int Team = 0;
 
 public:	
 	// Called every frame
@@ -68,6 +73,21 @@ private:
 	UFUNCTION(Client, Unreliable)
 		void CreateTemplateBuilding();
 
+	//PLAYER CLICK FUNCTIONS
+	void PlayerClick();
+
+	//Currently Checking Building Placement Validity on the Client *BAD*
+	bool CheckPlacingBuilding() { return CurrentTemplate != nullptr && CurrentTemplate->bReadyToPlace; }
+
+	void DrawSelectionBox();
+
+	TArray<ABaseUnit*> SelectedUnits;
+
+	UFUNCTION(Server, Unreliable, WithValidation)
+		void Server_FinalizeBuildingPlacement(FTransform Transform);
+
+	void PlayerRightClick();
+
 	APlayerController* GetPC();
 
 	FVector MovementDirection = FVector::ZeroVector;
@@ -83,6 +103,9 @@ private:
 
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentTemplateClass)
 		TSubclassOf<ATemplateBuilding> CurrentTemplateClass;
+
+	UPROPERTY(Replicated)
+		UStaticMesh* BuildingMesh;
 
 	UPROPERTY()
 		ATemplateBuilding* CurrentTemplate;
