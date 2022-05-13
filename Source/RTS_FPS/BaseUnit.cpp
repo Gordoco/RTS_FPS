@@ -4,6 +4,7 @@
 #include "BaseUnit.h"
 #include "BaseUnitController.h"
 #include "MovementActionData.h"
+#include "UnitTracker.h"
 #include "Runtime/Core/Public/Misc/AssertionMacros.h"
 #include "Engine.h"
 
@@ -19,7 +20,7 @@ ABaseUnit::ABaseUnit()
 }
 
 void ABaseUnit::Selected() {
-
+	
 }
 
 void ABaseUnit::AddAction(FAction Action) {
@@ -128,6 +129,7 @@ void ABaseUnit::BeginPlay()
 
 	//Server Side Setup
 	if (HasAuthority()) {
+		UUnitTracker::RegisterUnit(this, Team);
 		ActionQue = NewObject<UAIQueue>();
 		ActionQue->SetOwner(this);
 		Brain = NewObject<UBaseBrain>(this, BrainClass);
@@ -142,18 +144,7 @@ void ABaseUnit::CheckActions() {
 
 // Called every frame
 void ABaseUnit::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-	/*if (HasAuthority()) {
-		if (CurrentAction.ActionData->IsValidLowLevel()) {
-			GEngine->AddOnScreenDebugMessage(1, 5.f, FColor::Red, CurrentAction.Action_Type);
-		}
-	}*/
-	//Server Side Action Handling
-	/*
-	TO DO: Move this away from Tick based handling (Analyze performance)
-	*/
-}
+{Super::Tick(DeltaTime);}
 
 // Called to bind functionality to input
 void ABaseUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

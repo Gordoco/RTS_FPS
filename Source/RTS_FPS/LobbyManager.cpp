@@ -2,6 +2,7 @@
 
 
 #include "LobbyManager.h"
+#include "UnitTracker.h"
 #include "Runtime/Core/Public/Misc/AssertionMacros.h"
 
 // Sets default values
@@ -39,7 +40,6 @@ FGameMap* ALobbyManager::GetMapInfo(FString inName = "", int index = -1) {
 void ALobbyManager::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 // Called every frame
