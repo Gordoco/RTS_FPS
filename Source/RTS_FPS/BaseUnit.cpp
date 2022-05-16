@@ -17,6 +17,19 @@ ABaseUnit::ABaseUnit()
 
 	bReplicates = true;
 	SetReplicateMovement(true);
+
+	if (HasAuthority()) {
+		UUnitTracker::RegisterUnit(this, Team);
+	}
+
+}
+
+void ABaseUnit::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const {
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ABaseUnit, Health);
+	DOREPLIFETIME(ABaseUnit, MaxHealth);
+	DOREPLIFETIME(ABaseUnit, AttackRange);
+	DOREPLIFETIME(ABaseUnit, VisionRange);
 }
 
 void ABaseUnit::Selected() {
@@ -28,6 +41,18 @@ void ABaseUnit::AddAction(FAction Action) {
 	check(HasAuthority());
 	if (Action.Action_Type != "") {
 		ActionQue->Insert(Action);
+	}
+}
+
+void ABaseUnit::SearchForEnemies() {
+	check(HasAuthority());
+	ABaseUnit* Enemy = UUnitTracker::GetClosestUnit(Team, GetActorLocation());
+	if (Enemy != nullptr) {
+		float distance = FVector::Dist(GetActorLocation(), Enemy->GetActorLocation());
+		if (distance <= VisionRange) {
+			Enemy->SearchForEnemies();
+			//SETUP ATTACKING
+		}
 	}
 }
 
@@ -63,7 +88,6 @@ void ABaseUnit::RecieveAction() {
 void ABaseUnit::AddMovementAction(FVector Location, int prio) {
 	if (HasAuthority()) {
 		UMovementActionData* Data = NewObject<UMovementActionData>(this);
-		//Data->AddToRoot();
 		check(Data->IsValidLowLevel());
 		if (Data->IsValidLowLevel()) {
 			Data->SetLocation(Location);
@@ -72,11 +96,17 @@ void ABaseUnit::AddMovementAction(FVector Location, int prio) {
 	}
 }
 
+void ABaseUnit::AddAttackAction(ABaseUnit* Enemy, int prio) {
+	if (HasAuthority()) {
+
+	}
+}
+
 //FIND BETTER SCALABLE SOLUTION
 void ABaseUnit::RunAction() {
 	check(HasAuthority());
-	if (CurrentAction.Action_Type == "MOVEMENT") {
-		if (CurrentAction.ActionData != nullptr) {
+	if (CurrentAction.ActionData != nullptr) {
+		if (CurrentAction.Action_Type == "MOVEMENT") {
 			UMovementActionData* Data = Cast<UMovementActionData>(CurrentAction.ActionData);
 			if (Data != nullptr) {
 				Cast<AAIController>(GetController())->MoveToLocation(Data->GetLocation());
@@ -85,9 +115,12 @@ void ABaseUnit::RunAction() {
 				Debug_ActionCastError();
 			}
 		}
-	}
-	else {
-		Debug_UnknownCommand(CurrentAction.Action_Type);
+		else if (CurrentAction.Action_Type == "ATTACK") {
+
+		}
+		else {
+			Debug_UnknownCommand(CurrentAction.Action_Type);
+		}
 	}
 }
 
@@ -129,12 +162,18 @@ void ABaseUnit::BeginPlay()
 
 	//Server Side Setup
 	if (HasAuthority()) {
-		UUnitTracker::RegisterUnit(this, Team);
 		ActionQue = NewObject<UAIQueue>();
 		ActionQue->SetOwner(this);
 		Brain = NewObject<UBaseBrain>(this, BrainClass);
 		Brain->SetOwner(this);
 		RecieveAction();
+	}
+}
+
+void ABaseUnit::BeginDestroy() {
+	Super::BeginDestroy();
+	if (HasAuthority()) {
+		UUnitTracker::DeregisterUnit(this, Team);
 	}
 }
 

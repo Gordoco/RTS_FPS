@@ -15,7 +15,7 @@ USTRUCT(BlueprintType) struct FAction
 
 public:
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite, Category = "Actions")
 		FString Action_Type;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Actions")

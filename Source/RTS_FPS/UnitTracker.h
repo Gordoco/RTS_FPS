@@ -30,6 +30,8 @@ private:
 public:
 	static void RegisterUnit(ABaseUnit* Unit, int Team);
 
+	static void DeregisterUnit(ABaseUnit* Unit, int Team);
+
 	static TArray<FTeamData> GetAllTeamData() { return UUnitTracker::Teams; }
 
 	static FTeamData GetTeamData(int Team) { return UUnitTracker::Teams[Team]; }

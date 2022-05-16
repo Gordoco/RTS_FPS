@@ -11,14 +11,18 @@ TArray<ABaseUnit*> UUnitTracker::GetUnitsInRange(int Team, float inRange, FVecto
 	check(Team < Teams.Num() && Team > -1);
 	if (Team < Teams.Num() && Team > -1) {
 		float lowest = (float)INT_MAX;
-		for (ABaseUnit* Unit : Teams[Team].Units) {
-			float dist = FVector::Dist(Unit->GetActorLocation(), Location);
-			if (dist < lowest) {
-				returnArray.Push(Unit);
-				lowest = dist;
-			}
-			else {
-				returnArray.Add(Unit);
+		for (int i = 0; i < UUnitTracker::Teams.Num(); i++) {
+			if (i != Team) {
+				for (ABaseUnit* Unit : Teams[i].Units) {
+					float dist = FVector::Dist(Unit->GetActorLocation(), Location);
+					if (dist < lowest) {
+						returnArray.Push(Unit);
+						lowest = dist;
+					}
+					else {
+						returnArray.Add(Unit);
+					}
+				}
 			}
 		}
 	}
@@ -30,10 +34,14 @@ ABaseUnit* UUnitTracker::GetClosestUnit(int Team, FVector Location) {
 	check(Team < UUnitTracker::Teams.Num() && Team > -1);
 	if (Team < UUnitTracker::Teams.Num() && Team > -1) {
 		float lowest = (float)INT_MAX;
-		for (ABaseUnit* Unit : UUnitTracker::Teams[Team].Units) {
-			float dist = FVector::Dist(Unit->GetActorLocation(), Location);
-			if (dist < lowest) {
-				returnPointer = Unit;
+		for (int i = 0; i < UUnitTracker::Teams.Num(); i++) {
+			if (i != Team) {
+				for (ABaseUnit* Unit : UUnitTracker::Teams[i].Units) {
+					float dist = FVector::Dist(Unit->GetActorLocation(), Location);
+					if (dist < lowest) {
+						returnPointer = Unit;
+					}
+				}
 			}
 		}
 	}
@@ -47,5 +55,16 @@ void UUnitTracker::RegisterUnit(ABaseUnit* Unit, int Team) {
 			UUnitTracker::Teams.Add(FTeamData());
 		}
 		UUnitTracker::Teams[Team].Units.Add(Unit);
+	}
+}
+
+void UUnitTracker::DeregisterUnit(ABaseUnit* Unit, int Team) {
+	check(Team < UUnitTracker::Teams.Num() && Unit != nullptr);
+	if (Team < UUnitTracker::Teams.Num() && Unit != nullptr) {
+		int index = UUnitTracker::Teams[Team].Units.Find(Unit);
+		check(index != -1);
+		if (index != -1) {
+			UUnitTracker::Teams[Team].Units.RemoveAt(index);
+		}
 	}
 }

@@ -54,6 +54,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Buildings")
 		bool AttemptToBuild(TSubclassOf<ABaseBuilding> BuildingClass);
 
+	void ShouldTakeInput(bool bInput) { bShouldMove = bInput; }
+
 private:
 	UPROPERTY(ReplicatedUsing = OnRep_SetLocation)
 		FVector PlayerLocation;
@@ -75,6 +77,8 @@ private:
 
 	//PLAYER CLICK FUNCTIONS
 	void PlayerClick();
+
+	bool bShouldMove = true;
 
 	//Currently Checking Building Placement Validity on the Client *BAD*
 	bool CheckPlacingBuilding() { return CurrentTemplate != nullptr && CurrentTemplate->bReadyToPlace; }

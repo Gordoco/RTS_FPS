@@ -13,5 +13,11 @@ UCLASS()
 class RTS_FPS_API ARTSPlayerController : public APlayerController
 {
 	GENERATED_BODY()
+
+protected:
+	virtual void BeginPlay() override;
+
+	UFUNCTION()
+		void OnWindowFocusChanged(bool isFocused);
 	
 };

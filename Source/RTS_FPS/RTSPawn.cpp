@@ -73,10 +73,12 @@ void ARTSPawn::Server_CreateBuilding_Implementation(TSubclassOf<ABaseBuilding> B
 }
 
 void ARTSPawn::OnRep_CurrentTemplateClass() {
-	if (CurrentTemplateClass != nullptr) {
-		CreateTemplateBuilding();
-		if (CurrentTemplate != nullptr) {
-			CurrentTemplate->SetFollowMouse(GetPC());
+	if (IsLocallyControlled()) {
+		if (CurrentTemplateClass != nullptr) {
+			CreateTemplateBuilding();
+			if (CurrentTemplate != nullptr) {
+				CurrentTemplate->SetFollowMouse(GetPC());
+			}
 		}
 	}
 }
@@ -104,7 +106,7 @@ void ARTSPawn::Tick(float DeltaTime)
 		GEngine->AddOnScreenDebugMessage(89, 5.f, FColor::Red, GetDebugName(CurrentBuilding));
 	}*/
 
-	if (IsLocallyControlled()) {
+	if (IsLocallyControlled() && bShouldMove) {
 		CalculateMovement();
 		if (!MovementDirection.IsZero()) {
 			const FVector newLocation = GetActorLocation() + (MovementDirection * DeltaTime * MovementSpeed);
