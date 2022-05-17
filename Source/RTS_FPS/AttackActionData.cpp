@@ -3,3 +3,6 @@
 
 #include "AttackActionData.h"
 
+UAttackActionData::UAttackActionData() {
+	internalName = TEXT("ATTACK");
+}

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "ActionData.h"
+#include "BaseUnit.h"
 #include "AttackActionData.generated.h"
 
 /**
@@ -13,5 +14,14 @@ UCLASS()
 class RTS_FPS_API UAttackActionData : public UActionData
 {
 	GENERATED_BODY()
-	
+
+public:
+	UAttackActionData();
+
+	void SetEnemy(ABaseUnit* inEnemy) { Enemy = inEnemy; }
+
+protected:
+	UPROPERTY()
+		ABaseUnit* Enemy;
+
 };

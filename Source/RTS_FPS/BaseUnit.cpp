@@ -4,6 +4,7 @@
 #include "BaseUnit.h"
 #include "BaseUnitController.h"
 #include "MovementActionData.h"
+#include "AttackActionData.h"
 #include "UnitTracker.h"
 #include "Runtime/Core/Public/Misc/AssertionMacros.h"
 #include "Engine.h"
@@ -30,6 +31,7 @@ void ABaseUnit::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifet
 	DOREPLIFETIME(ABaseUnit, MaxHealth);
 	DOREPLIFETIME(ABaseUnit, AttackRange);
 	DOREPLIFETIME(ABaseUnit, VisionRange);
+	DOREPLIFETIME(ABaseUnit, StopRange);
 }
 
 void ABaseUnit::Selected() {
@@ -44,48 +46,51 @@ void ABaseUnit::AddAction(FAction Action) {
 	}
 }
 
-void ABaseUnit::SearchForEnemies() {
+void ABaseUnit::SearchForEnemies(int prio) {
 	check(HasAuthority());
 	ABaseUnit* Enemy = UUnitTracker::GetClosestUnit(Team, GetActorLocation());
+	check(Enemy != nullptr);
 	if (Enemy != nullptr) {
 		float distance = FVector::Dist(GetActorLocation(), Enemy->GetActorLocation());
 		if (distance <= VisionRange) {
-			Enemy->SearchForEnemies();
-			//SETUP ATTACKING
+			Enemy->SearchForEnemies(prio);
+			AddAttackAction(Enemy, prio);
 		}
 	}
 }
 
 void ABaseUnit::RecieveAction() {
 	check(HasAuthority());
-	if (!ActionQue->IsEmpty()) {
-		/*
-		Retrieve next action from queue (Based on priority)
-		*/
-		if (!DoneCurrentAction()) {
+	if (HasAuthority()) {
+		if (!ActionQue->IsEmpty()) {
+			/*
+			Retrieve next action from queue (Based on priority)
+			*/
+			if (!DoneCurrentAction()) {
 
-			if (CurrentAction.Priority < ActionQue->Peek().Priority) {
-				/*
-				Check and re-shuffle current action with highest priority
-				*/
-				FAction temp = ActionQue->DeleteMax();
-				ActionQue->Insert(CurrentAction);
-				CurrentAction = temp;
+				if (CurrentAction.Priority < ActionQue->Peek().Priority) {
+					/*
+					Check and re-shuffle current action with highest priority
+					*/
+					FAction temp = ActionQue->DeleteMax();
+					ActionQue->Insert(CurrentAction);
+					CurrentAction = temp;
+					RunAction();
+				}
+			}
+			else {
+				CurrentAction = ActionQue->DeleteMax();
 				RunAction();
 			}
 		}
 		else {
-
-			CurrentAction = ActionQue->DeleteMax();
-			RunAction();
+			Brain->FinishedCycle();
 		}
-	}
-	else {
-		Brain->FinishedCycle();
 	}
 }
 
 void ABaseUnit::AddMovementAction(FVector Location, int prio) {
+	check(HasAuthority());
 	if (HasAuthority()) {
 		UMovementActionData* Data = NewObject<UMovementActionData>(this);
 		check(Data->IsValidLowLevel());
@@ -97,29 +102,37 @@ void ABaseUnit::AddMovementAction(FVector Location, int prio) {
 }
 
 void ABaseUnit::AddAttackAction(ABaseUnit* Enemy, int prio) {
+	check(HasAuthority());
 	if (HasAuthority()) {
-
+		UAttackActionData* Data = NewObject<UAttackActionData>(this);
+		check(Data->IsValidLowLevel());
+		if (Data->IsValidLowLevel()) {
+			Data->SetEnemy(Enemy);
+			AddAction(FAction(Data, prio));
+		}
 	}
 }
 
 //FIND BETTER SCALABLE SOLUTION
 void ABaseUnit::RunAction() {
 	check(HasAuthority());
-	if (CurrentAction.ActionData != nullptr) {
-		if (CurrentAction.Action_Type == "MOVEMENT") {
-			UMovementActionData* Data = Cast<UMovementActionData>(CurrentAction.ActionData);
-			if (Data != nullptr) {
-				Cast<AAIController>(GetController())->MoveToLocation(Data->GetLocation());
+	if (HasAuthority()) {
+		if (CurrentAction.ActionData != nullptr) {
+			if (CurrentAction.Action_Type == "MOVEMENT") {
+				UMovementActionData* Data = Cast<UMovementActionData>(CurrentAction.ActionData);
+				if (Data != nullptr) {
+					Cast<AAIController>(GetController())->MoveToLocation(Data->GetLocation());
+				}
+				else {
+					Debug_ActionCastError();
+				}
+			}
+			else if (CurrentAction.Action_Type == "ATTACK") {
+
 			}
 			else {
-				Debug_ActionCastError();
+				Debug_UnknownCommand(CurrentAction.Action_Type);
 			}
-		}
-		else if (CurrentAction.Action_Type == "ATTACK") {
-
-		}
-		else {
-			Debug_UnknownCommand(CurrentAction.Action_Type);
 		}
 	}
 }

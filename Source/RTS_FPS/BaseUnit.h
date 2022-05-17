@@ -20,7 +20,7 @@ public:
 	ABaseUnit();
 
 	//EXPENSIVE, LIMIT CALLS. PUBLIC DUE TO RECURSIVE NATURE BETWEEN INSTANCES
-	void SearchForEnemies();
+	void SearchForEnemies(int prio);
 
 	void GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const override;
 
@@ -71,6 +71,9 @@ protected:
 
 	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
 		float VisionRange = 1000.f;
+
+	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
+		float StopRange = 2000.f;
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Actions")
