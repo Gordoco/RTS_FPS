@@ -7,10 +7,12 @@
 
 UAIQueue::UAIQueue() {}
 
+//O(1)
 bool UAIQueue::IsEmpty() {
 	return Queue.Num() <= 0;
 }
 
+//O(1)
 FAction UAIQueue::Peek() {
 	if (!IsEmpty()) {
 		return Queue[0];
@@ -18,7 +20,7 @@ FAction UAIQueue::Peek() {
 	return FAction();
 }
 
-void UAIQueue::Insert(FAction Action) {
+void UAIQueue::Insert_NoCheck(FAction Action) {
 	check(Owner != nullptr);
 	Queue.Emplace(Action);
 	int pos = Queue.Num() - 1;
@@ -43,12 +45,18 @@ void UAIQueue::Insert(FAction Action) {
 			pos = 0;
 		}
 	}
+}
+
+//O(log(n))
+void UAIQueue::Insert(FAction Action) {
+	Insert_NoCheck(Action);
 	ABaseUnit* Unit = Cast<ABaseUnit>(Owner);
 	if (Unit != nullptr) {
 		Unit->CheckActions();
 	}
 }
 
+//O(n)
 FAction UAIQueue::DeleteMax() {
 	FAction ReturnAction = Peek();
 	if (!IsEmpty()) {
@@ -57,21 +65,26 @@ FAction UAIQueue::DeleteMax() {
 		int pos = 0;
 
 		for (int i = 0; i < Queue.Num(); i++) {
+		//while (pos < Queue.Num() - 1) {
 			FAction temp = Queue[pos];
 			int LeftChildPos = (pos * 2) + 1;
 			int RightChildPos = (pos * 2) + 2;
 
 			if (LeftChildPos < Queue.Num()) {
 				if (Queue[pos].Priority < Queue[LeftChildPos].Priority) {
+					//SWAP WITH LEFT CHILD
 					Queue[pos] = Queue[LeftChildPos];
 					Queue[LeftChildPos] = temp;
+					//CHECK LEFT CHILD
 					pos = LeftChildPos;
 				}
 			}
 			else if (RightChildPos < Queue.Num()) {
 				if (Queue[pos].Priority < Queue[RightChildPos].Priority) {
+					//SWAP WITH RIGHT CHILD
 					Queue[pos] = Queue[RightChildPos];
 					Queue[RightChildPos] = temp;
+					//CHECK RIGHT CHILD
 					pos = RightChildPos;
 				}
 			}

@@ -20,6 +20,8 @@ public:
 
 	void SetEnemy(ABaseUnit* inEnemy) { Enemy = inEnemy; }
 
+	ABaseUnit* GetEnemy() { return Enemy; }
+
 protected:
 	UPROPERTY()
 		ABaseUnit* Enemy;

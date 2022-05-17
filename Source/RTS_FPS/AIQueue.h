@@ -56,6 +56,8 @@ public:
 
 	void Insert(FAction Action);
 
+	void Insert_NoCheck(FAction Action);
+
 	FString Debug_ListActions();
 
 	void SetOwner(AActor* in) { Owner = in; }

@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "AIQueue.h"
 #include "Net/UnrealNetwork.h"
+#include "TimerManager.h"
 #include "BaseBrain.h"
 #include "Navigation/PathFollowingComponent.h"
 #include "BaseUnit.generated.h"
@@ -31,6 +32,14 @@ protected:
 	virtual void BeginDestroy() override;
 
 private:
+	/*
+	PRIORITY CONSTANTS FOR AI QUEUE****************
+	*/
+	static const int UNIT_RESPONSE_PRIORITY = 10;
+	/*
+	***********************************************
+	*/
+
 	UPROPERTY()
 		UAIQueue* ActionQue;
 
@@ -50,6 +59,26 @@ private:
 
 	void Debug_ActionCastError();
 
+	/*
+		Attack Helper Functions
+	*/
+	UPROPERTY()
+	int DebugCount = 0;
+
+	FTimerHandle AttackSpeedHandle;
+
+	void AttackActionHandler();
+
+	bool CheckIfInRange(FVector EnemyLocation);
+
+	FVector CalculateLocationInRange(FVector EnemyLocation);
+
+	void MakeAttack(ABaseUnit* Enemy, float inDamage);
+
+	void DealDamage(float inDamage);
+
+	void Die();
+
 protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Brain")
 		TSubclassOf<UBaseBrain> BrainClass = UBaseBrain::StaticClass();
@@ -67,6 +96,12 @@ protected:
 		float Health = MaxHealth;
 
 	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
+		float Damage = 1.f;
+
+	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
+		float AttackSpeed = 1.f;
+
+	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
 		float AttackRange = 500.f;
 
 	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
@@ -81,6 +116,11 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Actions")
 		void AddAttackAction(ABaseUnit* Enemy, int prio);
+
+	//Should be called on Server
+	UFUNCTION(BlueprintCallable, Category = "Stats")
+		bool IsDead() { return Health <= 0; }
+
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
@@ -100,7 +140,6 @@ public:
 	bool DoneCurrentAction();
 
 	void CheckActions();
-
 
 	UFUNCTION(BlueprintPure, Category = "Brain")
 		UBaseBrain* GetBrain() { return Brain; }

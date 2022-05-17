@@ -32,8 +32,11 @@ void ABaseUnit::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifet
 	DOREPLIFETIME(ABaseUnit, AttackRange);
 	DOREPLIFETIME(ABaseUnit, VisionRange);
 	DOREPLIFETIME(ABaseUnit, StopRange);
+	DOREPLIFETIME(ABaseUnit, Damage);
+	DOREPLIFETIME(ABaseUnit, AttackSpeed);
 }
 
+//Called from all network roles
 void ABaseUnit::Selected() {
 	
 }
@@ -41,7 +44,7 @@ void ABaseUnit::Selected() {
 void ABaseUnit::AddAction(FAction Action) {
 	check(Action.Action_Type != "");
 	check(HasAuthority());
-	if (Action.Action_Type != "") {
+	if (Action.Action_Type != "" && HasAuthority()) {
 		ActionQue->Insert(Action);
 	}
 }
@@ -73,7 +76,7 @@ void ABaseUnit::RecieveAction() {
 					Check and re-shuffle current action with highest priority
 					*/
 					FAction temp = ActionQue->DeleteMax();
-					ActionQue->Insert(CurrentAction);
+					ActionQue->Insert_NoCheck(CurrentAction);
 					CurrentAction = temp;
 					RunAction();
 				}
@@ -117,6 +120,7 @@ void ABaseUnit::AddAttackAction(ABaseUnit* Enemy, int prio) {
 void ABaseUnit::RunAction() {
 	check(HasAuthority());
 	if (HasAuthority()) {
+		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "RAN ACTION");
 		if (CurrentAction.ActionData != nullptr) {
 			if (CurrentAction.Action_Type == "MOVEMENT") {
 				UMovementActionData* Data = Cast<UMovementActionData>(CurrentAction.ActionData);
@@ -128,13 +132,81 @@ void ABaseUnit::RunAction() {
 				}
 			}
 			else if (CurrentAction.Action_Type == "ATTACK") {
-
+				AttackActionHandler();
 			}
 			else {
 				Debug_UnknownCommand(CurrentAction.Action_Type);
 			}
 		}
 	}
+}
+
+//NEEDS WORK REGARDING FPS V UNIT COMBAT (ie. STRAFING, COVER, ETC.)
+void ABaseUnit::AttackActionHandler() {
+	UAttackActionData* Data = Cast<UAttackActionData>(CurrentAction.ActionData);
+	if (Data != nullptr) {
+		ABaseUnit* Enemy = Data->GetEnemy();
+		//Verify Enemy pointer validity (Safe to Destroy() on death), Check if Enemy should be dead, Check if within StopRange
+		if (Enemy->IsValidLowLevel() && !Enemy->IsDead() && FVector::Dist(Enemy->GetActorLocation(), GetActorLocation()) <= StopRange) {
+			//GEngine->AddOnScreenDebugMessage(12, 5.f, FColor::Green, "SHOULD ATTACK/MOVE AND ATTACK");
+			if (CheckIfInRange(Enemy->GetActorLocation())) {
+				//GEngine->AddOnScreenDebugMessage(13, 5.f, FColor::Green, "IN RANGE (ATTACKING)");
+				Enemy->AddAttackAction(this, UNIT_RESPONSE_PRIORITY);
+				MakeAttack(Enemy, Damage);
+				GetWorld()->GetTimerManager().SetTimer(AttackSpeedHandle, this, &ABaseUnit::AttackActionHandler, AttackSpeed, false);
+			}
+			else {
+				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "OUT OF RANGE (MOVING TO: " + CalculateLocationInRange(Enemy->GetActorLocation()).ToString() + ")");
+				AddMovementAction(CalculateLocationInRange(Enemy->GetActorLocation()), CurrentAction.Priority + 1);
+			}
+		}
+		else {
+			FinishAction();
+		}
+	}
+	else {
+		Debug_ActionCastError();
+	}
+}
+
+bool ABaseUnit::CheckIfInRange(FVector Location) {
+	return FVector::Dist(Location, GetActorLocation()) <= AttackRange;
+}
+
+//ADD LOS CHECKS
+FVector ABaseUnit::CalculateLocationInRange(FVector EnemyLocation) {
+	FVector Dir = EnemyLocation - GetActorLocation();
+	Dir.Normalize();
+	float Dist = FMath::Abs(FVector::Dist(EnemyLocation, GetActorLocation()));
+	FVector ReturnVector = GetActorLocation() + (Dir * ((Dist - AttackRange) * 1.1));
+	FHitResult Hit;
+	GetWorld()->LineTraceSingleByChannel(Hit, FVector(ReturnVector.X, ReturnVector.Y, 10000), FVector(ReturnVector.X, ReturnVector.Y, -10000), ECC_Visibility);
+	//FIX HARD CODED Z VALUE
+	return FVector(ReturnVector.X, ReturnVector.Y, Hit.Location.Z);
+}
+
+//NEEDS CHANGING TO PROJECTILE/MELEE COMBAT AND TO MAKE INTERACTIVE WITH PLAYER
+void ABaseUnit::MakeAttack(ABaseUnit* Enemy, float inDamage) {
+	Enemy->DealDamage(inDamage);
+}
+
+void ABaseUnit::DealDamage(float inDamage) {
+	check(HasAuthority());
+	if (HasAuthority()) {
+		Health = FMath::Clamp(Health - inDamage, 0, MaxHealth);
+		if (Health == 0) {
+			Die();
+		}
+	}
+}
+
+//Add OnRep_Health { Health == 0 -> Die }
+
+void ABaseUnit::Die() {
+	/*
+	Add Animations and other various aesthetic aspects
+	*/
+	Destroy();
 }
 
 void ABaseUnit::FinishAction() {
