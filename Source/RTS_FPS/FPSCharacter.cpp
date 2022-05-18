@@ -14,6 +14,9 @@ AFPSCharacter::AFPSCharacter()
 	FiringLocation = CreateDefaultSubobject<UBoxComponent>(TEXT("Fire Collision"));
 	FiringLocation->SetupAttachment(RootComponent);
 
+	FPSCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("CAM"));
+	FPSCamera->SetupAttachment(RootComponent);
+
 }
 
 FHitResult AFPSCharacter::GetShotHit() {
@@ -21,7 +24,7 @@ FHitResult AFPSCharacter::GetShotHit() {
 	check(GetWorld() != nullptr);
 	if (GetWorld() != nullptr) {
 		FVector Location = FiringLocation->GetComponentLocation();
-		GetWorld()->LineTraceSingleByChannel(Hit, Location, Location + (GetActorForwardVector() * AttackRange), ECC_Pawn);
+		GetWorld()->LineTraceSingleByChannel(Hit, Location, Location + (FPSCamera->GetForwardVector() * AttackRange), ECC_Pawn);
 	}
 	return Hit;
 }

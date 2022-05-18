@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "BaseUnit.h"
 #include "Components/BoxComponent.h"
+#include "Camera/CameraComponent.h"
 #include "FPSCharacter.generated.h"
 
 UCLASS()
@@ -43,6 +44,9 @@ protected:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Firing")
 		UBoxComponent* FiringLocation;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Components")
+		UCameraComponent* FPSCamera;
 
 public:	
 	// Called every frame
