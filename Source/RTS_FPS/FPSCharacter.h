@@ -4,10 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "BaseUnit.h"
+#include "Components/BoxComponent.h"
 #include "FPSCharacter.generated.h"
 
 UCLASS()
-class RTS_FPS_API AFPSCharacter : public ACharacter
+class RTS_FPS_API AFPSCharacter : public ABaseUnit
 {
 	GENERATED_BODY()
 
@@ -24,9 +26,23 @@ public:
 	// Sets default values for this character's properties
 	AFPSCharacter();
 
+	void GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const override;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
+	UFUNCTION(BlueprintPure, Category = "Firing")
+		FHitResult GetShotHit();
+
+	UFUNCTION(BlueprintCallable, Category = "Firing")
+		ABaseUnit* ValidateHit(AActor* HitActor);
+
+	UFUNCTION(Server, WithValidation, Unreliable, BlueprintCallable, Category = "Firing")
+		void Server_DamageEnemy(ABaseUnit* Enemy);
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Firing")
+		UBoxComponent* FiringLocation;
 
 public:	
 	// Called every frame

@@ -6,6 +6,7 @@
 #include "MovementActionData.h"
 #include "AttackActionData.h"
 #include "UnitTracker.h"
+#include "FPSCharacter.h"
 #include "Runtime/Core/Public/Misc/AssertionMacros.h"
 #include "Engine.h"
 
@@ -18,11 +19,6 @@ ABaseUnit::ABaseUnit()
 
 	bReplicates = true;
 	SetReplicateMovement(true);
-
-	if (HasAuthority()) {
-		UUnitTracker::RegisterUnit(this, Team);
-	}
-
 }
 
 void ABaseUnit::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const {
@@ -146,7 +142,7 @@ void ABaseUnit::AttackActionHandler() {
 	UAttackActionData* Data = Cast<UAttackActionData>(CurrentAction.ActionData);
 	if (Data != nullptr) {
 		ABaseUnit* Enemy = Data->GetEnemy();
-		//Verify Enemy pointer validity (Safe to Destroy() on death), Check if Enemy should be dead, Check if within StopRange
+		//Verify Enemy pointer validity (NOT Safe to Destroy() on death, Call Die() Instead), Check if Enemy should be dead, Check if within StopRange
 		if (Enemy->IsValidLowLevel() && !Enemy->IsDead() && FVector::Dist(Enemy->GetActorLocation(), GetActorLocation()) <= StopRange) {
 			//GEngine->AddOnScreenDebugMessage(12, 5.f, FColor::Green, "SHOULD ATTACK/MOVE AND ATTACK");
 			if (CheckIfInRange(Enemy->GetActorLocation())) {
@@ -181,7 +177,6 @@ FVector ABaseUnit::CalculateLocationInRange(FVector EnemyLocation) {
 	FVector ReturnVector = GetActorLocation() + (Dir * ((Dist - AttackRange) * 1.1));
 	FHitResult Hit;
 	GetWorld()->LineTraceSingleByChannel(Hit, FVector(ReturnVector.X, ReturnVector.Y, 10000), FVector(ReturnVector.X, ReturnVector.Y, -10000), ECC_Visibility);
-	//FIX HARD CODED Z VALUE
 	return FVector(ReturnVector.X, ReturnVector.Y, Hit.Location.Z);
 }
 
@@ -206,6 +201,9 @@ void ABaseUnit::Die() {
 	/*
 	Add Animations and other various aesthetic aspects
 	*/
+	if (HasAuthority()) {
+		UUnitTracker::DeregisterUnit(this, Team);
+	}
 	Destroy();
 }
 
@@ -236,29 +234,24 @@ bool ABaseUnit::DoneCurrentAction() {
 void ABaseUnit::BeginPlay()
 {
 	Super::BeginPlay();
-	SpawnDefaultController();
+	UUnitTracker::RegisterUnit(this, Team);
+	if (!Cast<AFPSCharacter>(this)) {
+		SpawnDefaultController();
+		/*if (HasAuthority()) {
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Server: I AM A UNIT");
+		}
+		else {
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Client: I AM A UNIT");
+		}*/
 
-	/*if (HasAuthority()) {
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Server: I AM A UNIT");
-	}
-	else {
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Client: I AM A UNIT");
-	}*/
-
-	//Server Side Setup
-	if (HasAuthority()) {
-		ActionQue = NewObject<UAIQueue>();
-		ActionQue->SetOwner(this);
-		Brain = NewObject<UBaseBrain>(this, BrainClass);
-		Brain->SetOwner(this);
-		RecieveAction();
-	}
-}
-
-void ABaseUnit::BeginDestroy() {
-	Super::BeginDestroy();
-	if (HasAuthority()) {
-		UUnitTracker::DeregisterUnit(this, Team);
+		//Server Side Setup
+		if (HasAuthority()) {
+			ActionQue = NewObject<UAIQueue>();
+			ActionQue->SetOwner(this);
+			Brain = NewObject<UBaseBrain>(this, BrainClass);
+			Brain->SetOwner(this);
+			RecieveAction();
+		}
 	}
 }
 

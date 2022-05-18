@@ -25,12 +25,12 @@ public:
 
 	void GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const override;
 
+	UFUNCTION(BlueprintCallable, Category = "Damage")
+		void DealDamage(float inDamage);
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
-	virtual void BeginDestroy() override;
-
 private:
 	/*
 	PRIORITY CONSTANTS FOR AI QUEUE****************
@@ -74,8 +74,6 @@ private:
 	FVector CalculateLocationInRange(FVector EnemyLocation);
 
 	void MakeAttack(ABaseUnit* Enemy, float inDamage);
-
-	void DealDamage(float inDamage);
 
 	void Die();
 
