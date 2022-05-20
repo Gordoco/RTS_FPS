@@ -4,6 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "FPSCharacter.h"
+#include "RTSPawn.h"
+#include "RTS_FPSGameModeBase.h"
 #include "RTSPlayerController.generated.h"
 
 /**
@@ -19,5 +22,45 @@ protected:
 
 	UFUNCTION()
 		void OnWindowFocusChanged(bool isFocused);
-	
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Classes")
+		TSubclassOf<AFPSCharacter> CommandoClass;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Classes")
+		TSubclassOf<ARTSPawn> CommanderClass;
+
+	void GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const override;
+
+protected:
+	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Init")
+		int Team;
+
+	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Init")
+		int MatchGameplayType;
+
+
+private:
+	void InitPC(int inMatchGameplayType, int inTeam);
+
+public:
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Ready")
+		bool bReady = false;
+
+	UFUNCTION(BlueprintPure, Category = "Init")
+	int GetTeam() { return Team; }
+
+	UFUNCTION(BlueprintPure, Category = "Init")
+	int GetMatchGameplayType() { return MatchGameplayType; }
+
+	UFUNCTION(BlueprintCallable, Category = "Replication")
+		int ShouldStartGame();
+
+	UFUNCTION(Server, WithValidation, Reliable, BlueprintCallable, Category = "Init")
+		void JoinTeamAtPosition(int inTeam, int inMatchGameplayType);
+
+	UFUNCTION(Server, WithValidation, Reliable, BlueprintCallable, Category = "Init")
+		void SpawnControlledPawn();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Spawning")
+		void MovePawnsToPlayerStarts(APawn* inPawn);
 };

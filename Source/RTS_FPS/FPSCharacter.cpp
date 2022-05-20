@@ -59,6 +59,10 @@ void AFPSCharacter::BeginPlay()
 	Super::BeginPlay();
 }
 
+void AFPSCharacter::Init() {
+
+}
+
 // Called every frame
 void AFPSCharacter::Tick(float DeltaTime)
 {

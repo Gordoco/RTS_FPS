@@ -80,10 +80,6 @@ private:
 protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Brain")
 		TSubclassOf<UBaseBrain> BrainClass = UBaseBrain::StaticClass();
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Team")
-		int Team = 0;
-
 	/*
 		Unit Stats (NEED REPLICATION, SERVERSIDE MANAGMENT, ETC.)
 	*/
@@ -109,6 +105,10 @@ protected:
 		float StopRange = 2000.f;
 
 public:
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Team")
+		int Team = 0;
+
 	UFUNCTION(BlueprintCallable, Category = "Actions")
 		void AddMovementAction(FVector Location, int prio);
 

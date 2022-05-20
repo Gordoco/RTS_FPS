@@ -31,6 +31,8 @@ public:
 
 	void GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const override;
 
+	void Init();
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -38,10 +40,10 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "HUD")
 		void CreateHUD();
 
+public:	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Team")
 		int Team = 0;
 
-public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 

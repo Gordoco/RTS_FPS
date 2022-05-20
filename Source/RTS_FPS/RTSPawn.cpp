@@ -28,14 +28,16 @@ void ARTSPawn::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	Init();
+}
+
+void ARTSPawn::Init() {
 	if (IsLocallyControlled()) {
 		CreateHUD();
 		APlayerController* PC = GetPC();
 		check(PC != nullptr);
 		if (PC != nullptr) {
 			PC->SetShowMouseCursor(true);
-			FInputModeGameAndUI Params;
-			PC->SetInputMode(Params.SetLockMouseToViewportBehavior(EMouseLockMode::LockAlways));
 		}
 	}
 }
@@ -223,7 +225,9 @@ void ARTSPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 void ARTSPawn::PlayerClick() 
 {
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, "Clicked");
 	if (CheckPlacingBuilding() && IsLocallyControlled()) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, "Locally Controlled and Placing in Progress");
 		Server_FinalizeBuildingPlacement(CurrentTemplate->GetTransform());
 		CurrentTemplate->Destroy();
 		CurrentTemplate = nullptr;
