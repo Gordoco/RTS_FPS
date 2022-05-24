@@ -253,9 +253,9 @@ void URTS_FPSGameInstance::OnJoinSessionComplete(FName SessionName, EOnJoinSessi
 				{
 					// Finally call the ClientTravel. If you want, you could print the TravelURL to see
 					// how it really looks like
-					GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Red, "1: " + TravelURL);
-					PlayerController->ClientTravel(TravelURL, ETravelType::TRAVEL_Relative);
-					GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Red, PlayerController->GetDebugName(PlayerController));
+					GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Red, "TRAVEL URL: " + TravelURL);
+					PlayerController->ClientTravel(TravelURL, ETravelType::TRAVEL_Absolute);
+					GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Red, "Should have Travelled");
 				}
 			}
 		}
@@ -287,20 +287,20 @@ void URTS_FPSGameInstance::OnDestroySessionComplete(FName SessionName, bool bWas
 	}
 }
 
-void URTS_FPSGameInstance::StartOnlineGame()
+void URTS_FPSGameInstance::StartOnlineGame(bool bLAN)
 {
 	// Creating a local player where we can get the UserID from
 	ULocalPlayer* const Player = GetFirstGamePlayer();
 
 	// Call our custom HostSession function. NAME_GameSession is a GameInstance variable
-	HostSession(Player->GetPreferredUniqueNetId().GetUniqueNetId(), NAME_GameSession, true, true, 4);
+	HostSession(Player->GetPreferredUniqueNetId().GetUniqueNetId(), NAME_GameSession, bLAN, true, 4);
 }
 
-void URTS_FPSGameInstance::FindOnlineGames()
+void URTS_FPSGameInstance::FindOnlineGames(bool bLAN)
 {
 	ULocalPlayer* const Player = GetFirstGamePlayer();
 
-	FindSessions(Player->GetPreferredUniqueNetId().GetUniqueNetId(), true, true);
+	FindSessions(Player->GetPreferredUniqueNetId().GetUniqueNetId(), bLAN, true);
 }
 
 void URTS_FPSGameInstance::JoinOnlineGame()

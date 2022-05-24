@@ -112,10 +112,10 @@ class RTS_FPS_API URTS_FPSGameInstance : public UGameInstance
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Network|Test")
-		void StartOnlineGame();
+		void StartOnlineGame(bool bLAN);
 
 	UFUNCTION(BlueprintCallable, Category = "Network|Test")
-		void FindOnlineGames();
+		void FindOnlineGames(bool bLAN);
 
 	UFUNCTION(BlueprintCallable, Category = "Network|Test")
 		void JoinOnlineGame();

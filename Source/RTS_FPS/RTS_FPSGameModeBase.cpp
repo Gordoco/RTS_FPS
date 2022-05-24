@@ -9,7 +9,6 @@ bool ARTS_FPSGameModeBase::CreateMatch(FString MapName, int NumPlayers) {
 	if (MapName != "" && NumPlayers > 0) {
 		check(GetWorld() != nullptr);
 		if (GetWorld() != nullptr) {
-			bUseSeamlessTravel = true;
 			return GetWorld()->ServerTravel(MapName + "?listen", true, false);
 		}
 	}
