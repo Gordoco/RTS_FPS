@@ -112,6 +112,27 @@ void ABaseUnit::AddAttackAction(ABaseUnit* Enemy, int prio) {
 	}
 }
 
+void ABaseUnit::InitCheckForCombat() {
+	check(HasAuthority());
+	if (HasAuthority()) {
+		GetWorld()->GetTimerManager().SetTimer(CheckForCombatHandle, this, &ABaseUnit::CheckForCombatIterator, CheckForCombatFactor, true);
+	}
+}
+
+void ABaseUnit::CheckForCombatIterator() {
+	check(HasAuthority());
+	if (HasAuthority()) {
+		ABaseUnit* PotentialEnemy = UUnitTracker::GetClosestUnit(Team, GetActorLocation());
+		float Dist = FVector::Dist(PotentialEnemy->GetActorLocation(), GetActorLocation());
+		if (Dist <= VisionRange) {
+			AddAttackAction(PotentialEnemy, UNIT_RESPONSE_PRIORITY);
+			if (Dist <= PotentialEnemy->VisionRange) {
+				PotentialEnemy->AddAttackAction(this, UNIT_RESPONSE_PRIORITY);
+			}
+		}
+	}
+}
+
 //FIND BETTER SCALABLE SOLUTION
 void ABaseUnit::RunAction() {
 	check(HasAuthority());
@@ -119,6 +140,7 @@ void ABaseUnit::RunAction() {
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "RAN ACTION");
 		if (CurrentAction.ActionData != nullptr) {
 			if (CurrentAction.Action_Type == "MOVEMENT") {
+				InitCheckForCombat();
 				UMovementActionData* Data = Cast<UMovementActionData>(CurrentAction.ActionData);
 				if (Data != nullptr) {
 					Cast<AAIController>(GetController())->MoveToLocation(Data->GetLocation());
@@ -202,6 +224,7 @@ void ABaseUnit::Die() {
 	Add Animations and other various aesthetic aspects
 	*/
 	if (HasAuthority()) {
+		GetWorld()->GetTimerManager().ClearTimer(CheckForCombatHandle);
 		UUnitTracker::DeregisterUnit(this, Team);
 	}
 	Destroy();
@@ -216,6 +239,7 @@ void ABaseUnit::FinishAction() {
 void ABaseUnit::FinishMovement(const FPathFollowingResult& Result) {
 	if (HasAuthority()) {
 		FinishAction();
+		GetWorld()->GetTimerManager().ClearTimer(CheckForCombatHandle);
 		/*if (Result.Code == EPathFollowingResult::Success) {
 
 		}*/
@@ -251,6 +275,7 @@ void ABaseUnit::BeginPlay()
 			Brain = NewObject<UBaseBrain>(this, BrainClass);
 			Brain->SetOwner(this);
 			RecieveAction();
+			CheckForCombatIterator();
 		}
 	}
 }

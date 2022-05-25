@@ -59,6 +59,14 @@ private:
 
 	void Debug_ActionCastError();
 
+	void InitCheckForCombat();
+
+	FTimerHandle CheckForCombatHandle;
+
+	float CheckForCombatFactor = 0.1;
+
+	void CheckForCombatIterator();
+
 	/*
 		Attack Helper Functions
 	*/
