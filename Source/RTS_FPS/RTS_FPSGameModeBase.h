@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
 #include "LobbyManager.h"
+#include "TimerManager.h"
 #include "RTS_FPSGameModeBase.generated.h"
 
 /**
@@ -54,6 +55,27 @@ private:
 	bool bTeam1Commander = false;
 
 	bool bTeam2Commander = false;
+
+	virtual void PostSeamlessTravel() override;
+
+	FTimerHandle CheckForPlayersLoadedHandle;
+
+	FTimerHandle TimeoutHandle;
+
+	void CheckForPlayersLoaded();
+
+	bool bStarted = false;
+
+	void StartGame();
+
+	void TimeoutGame();
+
+protected:
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Multiplayer")
+		float TimeoutTime = 15;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Multiplayer")
+		float CheckInterval = 0.2;
 
 public:
 	//Public Server-Side Function to Launch a Match (ONLY USABLE POST LOBBY CREATION)

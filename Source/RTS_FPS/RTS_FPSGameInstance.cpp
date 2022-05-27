@@ -38,6 +38,7 @@ bool URTS_FPSGameInstance::HostSession(TSharedPtr<const FUniqueNetId> UserId, FN
 			SessionSettings = MakeShareable(new FOnlineSessionSettings());
 
 			SessionSettings->bIsLANMatch = bIsLAN;
+			SessionSettings->bUseLobbiesIfAvailable = true;
 			SessionSettings->bUsesPresence = bIsPresence;
 			SessionSettings->NumPublicConnections = MaxNumPlayers;
 			SessionSettings->NumPrivateConnections = 0;
@@ -47,7 +48,7 @@ bool URTS_FPSGameInstance::HostSession(TSharedPtr<const FUniqueNetId> UserId, FN
 			SessionSettings->bAllowJoinViaPresence = true;
 			SessionSettings->bAllowJoinViaPresenceFriendsOnly = false;
 
-			SessionSettings->Set(SETTING_MAPNAME, FString("Lobby"), EOnlineDataAdvertisementType::ViaOnlineService);
+			SessionSettings->Set(SETTING_MAPNAME, FString("LobbyMenu"), EOnlineDataAdvertisementType::ViaOnlineService);
 
 			// Set the delegate to the Handle of the SessionInterface
 			OnCreateSessionCompleteDelegateHandle = Sessions->AddOnCreateSessionCompleteDelegate_Handle(OnCreateSessionCompleteDelegate);
@@ -112,7 +113,7 @@ void URTS_FPSGameInstance::OnStartOnlineGameComplete(FName SessionName, bool bWa
 	// If the start was successful, we can open a NewMap if we want. Make sure to use "listen" as a parameter!
 	if (bWasSuccessful)
 	{
-		UGameplayStatics::OpenLevel(GetWorld(), "Lobby", true, "listen");
+		UGameplayStatics::OpenLevel(GetWorld(), "LobbyMenu", true, "listen");
 	}
 }
 
@@ -134,8 +135,9 @@ void URTS_FPSGameInstance::FindSessions(TSharedPtr<const FUniqueNetId> UserId, b
 			SessionSearch = MakeShareable(new FOnlineSessionSearch());
 
 			SessionSearch->bIsLanQuery = bIsLAN;
-			SessionSearch->MaxSearchResults = 20;
+			SessionSearch->MaxSearchResults = 1000;
 			SessionSearch->PingBucketSize = 50;
+			SessionSearch->TimeoutInSeconds = 10;
 
 			// We only want to set this Query Setting if "bIsPresence" is true
 			if (bIsPresence)

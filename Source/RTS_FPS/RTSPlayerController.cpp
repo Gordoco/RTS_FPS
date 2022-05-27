@@ -10,11 +10,14 @@ void ARTSPlayerController::BeginPlay() {
 	FSlateApplication::Get().OnApplicationActivationStateChanged()
 		.AddUObject(this, &ARTSPlayerController::OnWindowFocusChanged);
 
-	if (IsLocalPlayerController()) {
-		if (UGameplayStatics::GetCurrentLevelName(GetWorld()) != "Lobby" && UGameplayStatics::GetCurrentLevelName(GetWorld()) != "MainMenu") {
+	if (IsLocalPlayerController() && Player->IsValidLowLevel()) {
+		if (UGameplayStatics::GetCurrentLevelName(GetWorld()) != "LobbyMenu" && UGameplayStatics::GetCurrentLevelName(GetWorld()) != "MainMenu") {
 			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "SPAWNING PAWNS");
 			SpawnControlledPawn();
 		}
+	}
+	else {
+		Destroy();
 	}
 }
 

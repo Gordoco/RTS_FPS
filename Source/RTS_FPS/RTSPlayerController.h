@@ -46,6 +46,8 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Ready")
 		bool bReady = false;
 
+	bool bLoaded = false;
+
 	UFUNCTION(BlueprintPure, Category = "Init")
 	int GetTeam() { return Team; }
 

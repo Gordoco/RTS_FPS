@@ -1089,57 +1089,57 @@
 "../../../Engine/Plugins/2D/Paper2D/Content/DummySprite.uexp" 1088
 "../../../Engine/Plugins/2D/Paper2D/Content/DefaultPaperTerrainMaterial.uasset" 1089
 "../../../Engine/Plugins/2D/Paper2D/Content/DefaultPaperTerrainMaterial.uexp" 1090
-"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/game_wind_noise.ubulk" 1091
-"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/game_wind_noise.uasset" 1092
-"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/game_wind_noise.uexp" 1093
-"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/UnpackDirection.uasset" 1094
-"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/UnpackDirection.uexp" 1095
-"../../../Engine/Content/Functions/Engine_MaterialFunctions02/ObjectLocalBounds.uasset" 1096
-"../../../Engine/Content/Functions/Engine_MaterialFunctions02/ObjectLocalBounds.uexp" 1097
-"../../../Engine/Content/Functions/Engine_MaterialFunctions02/UVs/BoundingBoxBased_0-1_UVW.uasset" 1098
-"../../../Engine/Content/Functions/Engine_MaterialFunctions02/UVs/BoundingBoxBased_0-1_UVW.uexp" 1099
-"../../../Engine/Content/Functions/Engine_MaterialFunctions02/Utility/VectorLength.uasset" 1100
-"../../../Engine/Content/Functions/Engine_MaterialFunctions02/Utility/VectorLength.uexp" 1101
-"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/UnpackInteger3.uasset" 1102
-"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/UnpackInteger3.uexp" 1103
-"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/SpeedTreeCameraFacing.uasset" 1104
-"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/SpeedTreeCameraFacing.uexp" 1105
-"../../../Engine/Content/Functions/Engine_MaterialFunctions02/WorldPositionOffset/ObjectScale.uasset" 1106
-"../../../Engine/Content/Functions/Engine_MaterialFunctions02/WorldPositionOffset/ObjectScale.uexp" 1107
-"../../../Engine/Content/Functions/Engine_MaterialFunctions02/SafeNormalize.uasset" 1108
-"../../../Engine/Content/Functions/Engine_MaterialFunctions02/SafeNormalize.uexp" 1109
-"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/SpeedTreeWindMotion.uasset" 1110
-"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/SpeedTreeWindMotion.uexp" 1111
-"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/SpeedTreeBranchMotion.uasset" 1112
-"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/SpeedTreeBranchMotion.uexp" 1113
-"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/SpeedTreeWind.uasset" 1114
-"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/SpeedTreeWind.uexp" 1115
-"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/EmptyNormal.uasset" 1116
-"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/EmptyNormal.uexp" 1117
-"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/Empty.uasset" 1118
-"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/Empty.uexp" 1119
-"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/SpeedTreeMaster.uasset" 1120
-"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/SpeedTreeMaster.uexp" 1121
-"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/SpeedTreeBillboard.uasset" 1122
-"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/SpeedTreeBillboard.uexp" 1123
-"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/SpeedTreeBillboardMaster.uasset" 1124
-"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/SpeedTreeBillboardMaster.uexp" 1125
-"../../../Engine/Plugins/Animation/ControlRig/Content/M_Manip.uasset" 1126
-"../../../Engine/Plugins/Animation/ControlRig/Content/M_Manip.uexp" 1127
-"../../../Engine/Plugins/Runtime/HairStrands/Content/Materials/HairMeshesDefaultMaterial.uasset" 1128
-"../../../Engine/Plugins/Runtime/HairStrands/Content/Materials/HairMeshesDefaultMaterial.uexp" 1129
-"../../../Engine/Plugins/Runtime/HairStrands/Content/Materials/HairDefaultMaterial.uasset" 1130
-"../../../Engine/Plugins/Runtime/HairStrands/Content/Materials/HairDefaultMaterial.uexp" 1131
-"../../../Engine/Plugins/Runtime/HairStrands/Content/Materials/HairGroupColors.uasset" 1132
-"../../../Engine/Plugins/Runtime/HairStrands/Content/Materials/HairGroupColors.uexp" 1133
-"../../../Engine/Content/EngineMaterials/HairColorMap.uasset" 1134
-"../../../Engine/Content/EngineMaterials/HairColorMap.uexp" 1135
-"../../../Engine/Content/EngineMaterials/HairDebugColor.uasset" 1136
-"../../../Engine/Content/EngineMaterials/HairDebugColor.uexp" 1137
-"../../../Engine/Plugins/Runtime/HairStrands/Content/Materials/HairDebugMaterial.uasset" 1138
-"../../../Engine/Plugins/Runtime/HairStrands/Content/Materials/HairDebugMaterial.uexp" 1139
-"../../../Engine/Plugins/Runtime/HairStrands/Content/Materials/HairCardsDefaultMaterial.uasset" 1140
-"../../../Engine/Plugins/Runtime/HairStrands/Content/Materials/HairCardsDefaultMaterial.uexp" 1141
+"../../../Engine/Plugins/Runtime/HairStrands/Content/Materials/HairMeshesDefaultMaterial.uasset" 1091
+"../../../Engine/Plugins/Runtime/HairStrands/Content/Materials/HairMeshesDefaultMaterial.uexp" 1092
+"../../../Engine/Plugins/Runtime/HairStrands/Content/Materials/HairDefaultMaterial.uasset" 1093
+"../../../Engine/Plugins/Runtime/HairStrands/Content/Materials/HairDefaultMaterial.uexp" 1094
+"../../../Engine/Plugins/Runtime/HairStrands/Content/Materials/HairGroupColors.uasset" 1095
+"../../../Engine/Plugins/Runtime/HairStrands/Content/Materials/HairGroupColors.uexp" 1096
+"../../../Engine/Content/EngineMaterials/HairColorMap.uasset" 1097
+"../../../Engine/Content/EngineMaterials/HairColorMap.uexp" 1098
+"../../../Engine/Content/EngineMaterials/HairDebugColor.uasset" 1099
+"../../../Engine/Content/EngineMaterials/HairDebugColor.uexp" 1100
+"../../../Engine/Plugins/Runtime/HairStrands/Content/Materials/HairDebugMaterial.uasset" 1101
+"../../../Engine/Plugins/Runtime/HairStrands/Content/Materials/HairDebugMaterial.uexp" 1102
+"../../../Engine/Plugins/Runtime/HairStrands/Content/Materials/HairCardsDefaultMaterial.uasset" 1103
+"../../../Engine/Plugins/Runtime/HairStrands/Content/Materials/HairCardsDefaultMaterial.uexp" 1104
+"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/game_wind_noise.ubulk" 1105
+"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/game_wind_noise.uasset" 1106
+"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/game_wind_noise.uexp" 1107
+"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/UnpackDirection.uasset" 1108
+"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/UnpackDirection.uexp" 1109
+"../../../Engine/Content/Functions/Engine_MaterialFunctions02/ObjectLocalBounds.uasset" 1110
+"../../../Engine/Content/Functions/Engine_MaterialFunctions02/ObjectLocalBounds.uexp" 1111
+"../../../Engine/Content/Functions/Engine_MaterialFunctions02/UVs/BoundingBoxBased_0-1_UVW.uasset" 1112
+"../../../Engine/Content/Functions/Engine_MaterialFunctions02/UVs/BoundingBoxBased_0-1_UVW.uexp" 1113
+"../../../Engine/Content/Functions/Engine_MaterialFunctions02/Utility/VectorLength.uasset" 1114
+"../../../Engine/Content/Functions/Engine_MaterialFunctions02/Utility/VectorLength.uexp" 1115
+"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/UnpackInteger3.uasset" 1116
+"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/UnpackInteger3.uexp" 1117
+"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/SpeedTreeCameraFacing.uasset" 1118
+"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/SpeedTreeCameraFacing.uexp" 1119
+"../../../Engine/Content/Functions/Engine_MaterialFunctions02/WorldPositionOffset/ObjectScale.uasset" 1120
+"../../../Engine/Content/Functions/Engine_MaterialFunctions02/WorldPositionOffset/ObjectScale.uexp" 1121
+"../../../Engine/Content/Functions/Engine_MaterialFunctions02/SafeNormalize.uasset" 1122
+"../../../Engine/Content/Functions/Engine_MaterialFunctions02/SafeNormalize.uexp" 1123
+"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/SpeedTreeWindMotion.uasset" 1124
+"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/SpeedTreeWindMotion.uexp" 1125
+"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/SpeedTreeBranchMotion.uasset" 1126
+"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/SpeedTreeBranchMotion.uexp" 1127
+"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/SpeedTreeWind.uasset" 1128
+"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/SpeedTreeWind.uexp" 1129
+"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/EmptyNormal.uasset" 1130
+"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/EmptyNormal.uexp" 1131
+"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/Empty.uasset" 1132
+"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/Empty.uexp" 1133
+"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/SpeedTreeMaster.uasset" 1134
+"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/SpeedTreeMaster.uexp" 1135
+"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/SpeedTreeBillboard.uasset" 1136
+"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/SpeedTreeBillboard.uexp" 1137
+"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/SpeedTreeBillboardMaster.uasset" 1138
+"../../../Engine/Plugins/Editor/SpeedTreeImporter/Content/SpeedTree9/SpeedTreeBillboardMaster.uexp" 1139
+"../../../Engine/Plugins/Animation/ControlRig/Content/M_Manip.uasset" 1140
+"../../../Engine/Plugins/Animation/ControlRig/Content/M_Manip.uexp" 1141
 "../../../Engine/Plugins/Animation/ControlRig/Content/Controls/DefaultGizmoLibraryNormalized.uasset" 1142
 "../../../Engine/Plugins/Animation/ControlRig/Content/Controls/DefaultGizmoLibraryNormalized.uexp" 1143
 "../../../Engine/Plugins/Animation/ControlRig/Content/Controls/ControlRig_Wedge_solid.ubulk" 1144
@@ -1901,8 +1901,8 @@
 "C:/Users/gordo/Documents/Unreal Projects/RTS_FPS/Content/GameFiles/Blueprints/Players/Controllers/RTS_FPSController.uexp" 1900
 "C:/Users/gordo/Documents/Unreal Projects/RTS_FPS/Content/GameFiles/UserInterface/Widgets/LobbyHUD.uasset" 1901
 "C:/Users/gordo/Documents/Unreal Projects/RTS_FPS/Content/GameFiles/UserInterface/Widgets/LobbyHUD.uexp" 1902
-"C:/Users/gordo/Documents/Unreal Projects/RTS_FPS/Content/GameFiles/UserInterface/MenuLevels/Lobby.uexp" 1903
-"C:/Users/gordo/Documents/Unreal Projects/RTS_FPS/Content/GameFiles/UserInterface/MenuLevels/Lobby.umap" 1904
+"C:/Users/gordo/Documents/Unreal Projects/RTS_FPS/Content/GameFiles/UserInterface/MenuLevels/LobbyMenu.uexp" 1903
+"C:/Users/gordo/Documents/Unreal Projects/RTS_FPS/Content/GameFiles/UserInterface/MenuLevels/LobbyMenu.umap" 1904
 "C:/Users/gordo/Documents/Unreal Projects/RTS_FPS/Content/GameFiles/TESTING/Maps/TestTransition.uexp" 1905
 "C:/Users/gordo/Documents/Unreal Projects/RTS_FPS/Content/GameFiles/TESTING/Maps/TestTransition.umap" 1906
 "C:/Users/gordo/Documents/Unreal Projects/RTS_FPS/Content/LevelPrototyping/Materials/MI_PrototypeGrid_TopDark.uasset" 1907
