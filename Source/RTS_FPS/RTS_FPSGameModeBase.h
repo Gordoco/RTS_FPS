@@ -82,7 +82,7 @@ protected:
 public:
 	//Public Server-Side Function to Launch a Match (ONLY USABLE POST LOBBY CREATION)
 	UFUNCTION(BlueprintCallable, Category = "Match")
-		bool CreateMatch(FString MapName, int NumPlayers);
+		bool CreateMatch(FString MapName, int NumPlayers, bool bListen);
 
 	bool RequestMatchPosition(FMatchRequest inRequest, APlayerController* RequestingPC);
 

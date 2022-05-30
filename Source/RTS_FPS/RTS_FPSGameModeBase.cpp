@@ -7,12 +7,17 @@
 #include "RTSPlayerController.h"
 #include "Runtime/Core/Public/Misc/AssertionMacros.h"
 
-bool ARTS_FPSGameModeBase::CreateMatch(FString MapName, int NumPlayers) {
+bool ARTS_FPSGameModeBase::CreateMatch(FString MapName, int NumPlayers, bool bListen) {
 	check(MapName != "" && NumPlayers > 0);
 	if (MapName != "" && NumPlayers > 0) {
 		check(GetWorld() != nullptr);
 		if (GetWorld() != nullptr) {
-			return GetWorld()->ServerTravel(MapName + "?listen", true, false);
+			if (bListen) {
+				return GetWorld()->ServerTravel(MapName + "?listen", true, false);
+			}
+			else {
+				return GetWorld()->ServerTravel(MapName, true, false);
+			}
 		}
 	}
 	return false;
