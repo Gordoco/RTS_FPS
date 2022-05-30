@@ -7,6 +7,10 @@
 
 UAIQueue::UAIQueue() {}
 
+void UAIQueue::PrintNumActions() {
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::SanitizeFloat(Queue.Num()));
+}
+
 //O(1)
 bool UAIQueue::IsEmpty() {
 	return Queue.Num() <= 0;
@@ -20,6 +24,7 @@ FAction UAIQueue::Peek() {
 	return FAction();
 }
 
+//O(log(n))
 void UAIQueue::Insert_NoCheck(FAction Action) {
 	check(Owner != nullptr);
 	Queue.Emplace(Action);
@@ -58,6 +63,7 @@ void UAIQueue::Insert(FAction Action) {
 
 //O(n)
 FAction UAIQueue::DeleteMax() {
+	//PrintNumActions();
 	FAction ReturnAction = Peek();
 	if (!IsEmpty()) {
 		Queue[0] = Queue[Queue.Num() - 1];

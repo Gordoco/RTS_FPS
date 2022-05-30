@@ -7,12 +7,16 @@
 #include "Runtime/Core/Public/Misc/AssertionMacros.h"
 
 void ARTSPlayerController::BeginPlay() {
+	Super::BeginPlay();
 	FSlateApplication::Get().OnApplicationActivationStateChanged()
 		.AddUObject(this, &ARTSPlayerController::OnWindowFocusChanged);
+}
 
+void ARTSPlayerController::StartMatch() {
 	if (IsLocalPlayerController() && Player->IsValidLowLevel()) {
 		if (UGameplayStatics::GetCurrentLevelName(GetWorld()) != "LobbyMenu" && UGameplayStatics::GetCurrentLevelName(GetWorld()) != "MainMenu") {
 			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "SPAWNING PAWNS");
+			bLoaded = true;
 			SpawnControlledPawn();
 		}
 	}
@@ -51,6 +55,7 @@ void ARTSPlayerController::SpawnControlledPawn_Implementation() {
 		GetPawn()->Destroy();
 	if (MatchGameplayType == 0) {
 		ARTSPawn* thisPlayer = GetWorld()->SpawnActor<ARTSPawn>(CommanderClass, FVector(), FRotator());
+		SetShowMouseCursor(true);
 		Possess(thisPlayer);
 		thisPlayer->Team = Team;
 		MovePawnsToPlayerStarts(thisPlayer);
@@ -58,6 +63,7 @@ void ARTSPlayerController::SpawnControlledPawn_Implementation() {
 	}
 	else if (MatchGameplayType == 1) {
 		AFPSCharacter* thisPlayer = GetWorld()->SpawnActor<AFPSCharacter>(CommandoClass, FVector(), FRotator());
+		SetShowMouseCursor(false);
 		Possess(thisPlayer);
 		thisPlayer->Team = Team;
 		MovePawnsToPlayerStarts(thisPlayer);

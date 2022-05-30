@@ -28,6 +28,8 @@ private:
 	inline static TArray<FTeamData> Teams;
 
 public:
+	static void Empty() { Teams.Empty(); }
+
 	static void RegisterUnit(ABaseUnit* Unit, int Team);
 
 	static void DeregisterUnit(ABaseUnit* Unit, int Team);

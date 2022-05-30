@@ -14,6 +14,8 @@ void UBaseBrain::SetOwner(ACharacter* inOwner) {
 	}
 }
 
-void UBaseBrain::StartBrain() {}
+void UBaseBrain::StartBrain() {
+	BP_StartBrain();
+}
 
 void UBaseBrain::FinishedCycle() {}

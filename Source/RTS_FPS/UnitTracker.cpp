@@ -49,6 +49,7 @@ ABaseUnit* UUnitTracker::GetClosestUnit(int Team, FVector Location) {
 }
 
 void UUnitTracker::RegisterUnit(ABaseUnit* Unit, int Team) {
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "REGISTERED UNIT ON TEAM: " + FString::SanitizeFloat(Team));
 	check(Team <= UUnitTracker::Teams.Num() && Unit != nullptr);
 	if (Team <= UUnitTracker::Teams.Num() && Unit != nullptr) {
 		if (Team == UUnitTracker::Teams.Num()) {

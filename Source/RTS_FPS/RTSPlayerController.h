@@ -39,14 +39,15 @@ protected:
 		int MatchGameplayType;
 
 
-private:
+public:
 	void InitPC(int inMatchGameplayType, int inTeam);
 
-public:
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Ready")
 		bool bReady = false;
 
 	bool bLoaded = false;
+
+	void StartMatch();
 
 	UFUNCTION(BlueprintPure, Category = "Init")
 	int GetTeam() { return Team; }

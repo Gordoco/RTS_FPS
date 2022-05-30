@@ -62,6 +62,10 @@ public:
 
 	void SetOwner(AActor* in) { Owner = in; }
 
+	//DEBUG
+	UFUNCTION(BlueprintCallable, Category = "Debug")
+		void PrintNumActions();
+
 protected:
 	UPROPERTY()
 		TArray<FAction> Queue;

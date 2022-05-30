@@ -58,6 +58,8 @@ private:
 
 	virtual void PostSeamlessTravel() override;
 
+	virtual void SwapPlayerControllers(APlayerController* OldPC, APlayerController* NewPC) override;
+
 	FTimerHandle CheckForPlayersLoadedHandle;
 
 	FTimerHandle TimeoutHandle;

@@ -30,6 +30,7 @@ void ABaseUnit::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifet
 	DOREPLIFETIME(ABaseUnit, StopRange);
 	DOREPLIFETIME(ABaseUnit, Damage);
 	DOREPLIFETIME(ABaseUnit, AttackSpeed);
+	DOREPLIFETIME(ABaseUnit, Team);
 }
 
 //Called from all network roles
@@ -122,12 +123,20 @@ void ABaseUnit::InitCheckForCombat() {
 void ABaseUnit::CheckForCombatIterator() {
 	check(HasAuthority());
 	if (HasAuthority()) {
-		ABaseUnit* PotentialEnemy = UUnitTracker::GetClosestUnit(Team, GetActorLocation());
-		float Dist = FVector::Dist(PotentialEnemy->GetActorLocation(), GetActorLocation());
-		if (Dist <= VisionRange) {
-			AddAttackAction(PotentialEnemy, UNIT_RESPONSE_PRIORITY);
-			if (Dist <= PotentialEnemy->VisionRange) {
-				PotentialEnemy->AddAttackAction(this, UNIT_RESPONSE_PRIORITY);
+		TArray<ABaseUnit*> PotentialEnemys = UUnitTracker::GetUnitsInRange(Team, VisionRange, GetActorLocation());
+		for (ABaseUnit* PotentialEnemy : PotentialEnemys) {
+			if (!EnemyList.Contains(PotentialEnemy)) {
+				float Dist = FVector::Dist(PotentialEnemy->GetActorLocation(), GetActorLocation());
+				if (Dist <= VisionRange) {
+					AddAttackAction(PotentialEnemy, UNIT_RESPONSE_PRIORITY);
+					EnemyList.Add(PotentialEnemy);
+					if (!PotentialEnemy->EnemyList.Contains(this)) {
+						if (Dist <= PotentialEnemy->VisionRange) {
+							PotentialEnemy->AddAttackAction(this, UNIT_RESPONSE_PRIORITY);
+							PotentialEnemy->EnemyList.Add(this);
+						}
+					}
+				}
 			}
 		}
 	}
@@ -143,6 +152,7 @@ void ABaseUnit::RunAction() {
 				InitCheckForCombat();
 				UMovementActionData* Data = Cast<UMovementActionData>(CurrentAction.ActionData);
 				if (Data != nullptr) {
+					//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Attempted Movement");
 					Cast<AAIController>(GetController())->MoveToLocation(Data->GetLocation());
 				}
 				else {
@@ -169,16 +179,21 @@ void ABaseUnit::AttackActionHandler() {
 			//GEngine->AddOnScreenDebugMessage(12, 5.f, FColor::Green, "SHOULD ATTACK/MOVE AND ATTACK");
 			if (CheckIfInRange(Enemy->GetActorLocation())) {
 				//GEngine->AddOnScreenDebugMessage(13, 5.f, FColor::Green, "IN RANGE (ATTACKING)");
-				Enemy->AddAttackAction(this, UNIT_RESPONSE_PRIORITY);
+				//Enemy->AddAttackAction(this, UNIT_RESPONSE_PRIORITY);
 				MakeAttack(Enemy, Damage);
 				GetWorld()->GetTimerManager().SetTimer(AttackSpeedHandle, this, &ABaseUnit::AttackActionHandler, AttackSpeed, false);
 			}
 			else {
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "OUT OF RANGE (MOVING TO: " + CalculateLocationInRange(Enemy->GetActorLocation()).ToString() + ")");
+				//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "OUT OF RANGE (MOVING TO: " + CalculateLocationInRange(Enemy->GetActorLocation()).ToString() + ")");
 				AddMovementAction(CalculateLocationInRange(Enemy->GetActorLocation()), CurrentAction.Priority + 1);
 			}
 		}
 		else {
+			if (Enemy->IsValidLowLevel()) {
+				if (EnemyList.Contains(Enemy)) {
+					EnemyList.Remove(Enemy);
+				}
+			}
 			FinishAction();
 		}
 	}
@@ -218,14 +233,19 @@ void ABaseUnit::DealDamage(float inDamage) {
 }
 
 //Add OnRep_Health { Health == 0 -> Die }
-
 void ABaseUnit::Die() {
 	/*
 	Add Animations and other various aesthetic aspects
 	*/
 	if (HasAuthority()) {
-		GetWorld()->GetTimerManager().ClearTimer(CheckForCombatHandle);
 		UUnitTracker::DeregisterUnit(this, Team);
+		GetWorld()->GetTimerManager().ClearTimer(CheckForCombatHandle);
+		if (ActionQue->IsValidLowLevel()) {
+			ActionQue->ConditionalBeginDestroy();
+		}
+		if (Brain->IsValidLowLevel()) {
+			Brain->ConditionalBeginDestroy();
+		}
 	}
 	Destroy();
 }
@@ -238,11 +258,20 @@ void ABaseUnit::FinishAction() {
 
 void ABaseUnit::FinishMovement(const FPathFollowingResult& Result) {
 	if (HasAuthority()) {
-		FinishAction();
-		GetWorld()->GetTimerManager().ClearTimer(CheckForCombatHandle);
-		/*if (Result.Code == EPathFollowingResult::Success) {
-
-		}*/
+		if (CurrentAction.Action_Type == "ATTACK") {
+			GetWorld()->GetTimerManager().ClearTimer(CheckForCombatHandle);
+			if (Result.Code != EPathFollowingResult::Success) {
+				//ATTEMPTING TO AVOID A STACK OVERFLOW WITH MASS UNITS. NEED A BETTER LONG TERM SOLUTION
+				GetWorld()->GetTimerManager().SetTimer(CheckBlockedMovementHandle, this, &ABaseUnit::FinishAction, 0.8, false);
+			}
+			else {
+				FinishAction();
+			}
+		}
+		else {
+			FinishAction();
+		}
+		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::SanitizeFloat(Result.Code));
 	}
 }
 
@@ -257,9 +286,12 @@ bool ABaseUnit::DoneCurrentAction() {
 // Called when the game starts or when spawned
 void ABaseUnit::BeginPlay()
 {
+	//Register Units and Players
+	if (HasAuthority()) {
+		UUnitTracker::RegisterUnit(this, Team);
+	}
 	Super::BeginPlay();
-	UUnitTracker::RegisterUnit(this, Team);
-	if (!Cast<AFPSCharacter>(this)) {
+	if (Cast<AFPSCharacter>(this) == nullptr) {
 		SpawnDefaultController();
 		/*if (HasAuthority()) {
 			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Server: I AM A UNIT");
@@ -273,6 +305,7 @@ void ABaseUnit::BeginPlay()
 			ActionQue = NewObject<UAIQueue>();
 			ActionQue->SetOwner(this);
 			Brain = NewObject<UBaseBrain>(this, BrainClass);
+			Brain->Team = Team;
 			Brain->SetOwner(this);
 			RecieveAction();
 			CheckForCombatIterator();

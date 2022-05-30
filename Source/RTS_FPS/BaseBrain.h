@@ -21,10 +21,19 @@ public:
 
 	virtual void FinishedCycle();
 
+	UPROPERTY(BlueprintReadOnly, Category = "Team")
+		int Team = 0;
+
 protected:
 	ABaseUnitController* AIController;
 
 	ACharacter* Owner;
+
+	UFUNCTION(BlueprintPure, Category = "Player")
+		ACharacter* GetOwner() { return Owner; }
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Init")
+		void BP_StartBrain();
 
 	virtual void StartBrain();
 };

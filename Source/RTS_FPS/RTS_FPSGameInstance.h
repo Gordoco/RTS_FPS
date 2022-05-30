@@ -19,6 +19,8 @@ class RTS_FPS_API URTS_FPSGameInstance : public UGameInstance
 
 	URTS_FPSGameInstance(const FObjectInitializer& ObjectInitializer);
 
+	virtual void Shutdown() override;
+
 	/* Delegate called when session created */
 	FOnCreateSessionCompleteDelegate OnCreateSessionCompleteDelegate;
 	/* Delegate called when session started */

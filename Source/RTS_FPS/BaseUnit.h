@@ -75,6 +75,8 @@ private:
 
 	FTimerHandle AttackSpeedHandle;
 
+	FTimerHandle CheckBlockedMovementHandle;
+
 	void AttackActionHandler();
 
 	bool CheckIfInRange(FVector EnemyLocation);
@@ -113,8 +115,13 @@ protected:
 		float StopRange = 2000.f;
 
 public:
+	UFUNCTION(BlueprintCallable, Category = "Stats")
+		void Kill() { Die(); }
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Team")
+	//Keeps an up-to-date list of all enemys with an active attack action
+	TArray<ABaseUnit*> EnemyList;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Team", Replicated, Meta = (ExposeOnSpawn = "true"))
 		int Team = 0;
 
 	UFUNCTION(BlueprintCallable, Category = "Actions")

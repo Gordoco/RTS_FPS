@@ -12,8 +12,8 @@ ABaseUnitController::ABaseUnitController() {
 void ABaseUnitController::OnMoveCompleted(FAIRequestID RequestID, const FPathFollowingResult& Result) {
 	check(Cast<ABaseUnit>(GetPawn()));
 	if (Cast<ABaseUnit>(GetPawn())) {
-		check(RequestID.IsValid());
-		Cast<ABaseUnit>(GetPawn())->FinishMovement(Result);
+		if (RequestID.IsValid()) {
+			Cast<ABaseUnit>(GetPawn())->FinishMovement(Result);
+		}
 	}
-
 }

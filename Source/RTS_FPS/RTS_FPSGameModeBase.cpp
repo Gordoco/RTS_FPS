@@ -19,8 +19,19 @@ bool ARTS_FPSGameModeBase::CreateMatch(FString MapName, int NumPlayers) {
 }
 
 void ARTS_FPSGameModeBase::PostSeamlessTravel() {
+	Super::PostSeamlessTravel();
 	GetWorld()->GetTimerManager().SetTimer(CheckForPlayersLoadedHandle, this, &ARTS_FPSGameModeBase::CheckForPlayersLoaded, CheckInterval, true);
 	GetWorld()->GetTimerManager().SetTimer(TimeoutHandle, this, &ARTS_FPSGameModeBase::TimeoutGame, TimeoutTime, false);
+}
+
+void ARTS_FPSGameModeBase::SwapPlayerControllers(APlayerController* OldPC, APlayerController* NewPC) 
+{
+	ARTSPlayerController* CAST_OldPC = Cast<ARTSPlayerController>(OldPC);
+	ARTSPlayerController* CAST_NewPC = Cast<ARTSPlayerController>(OldPC);
+	if (CAST_OldPC != nullptr && CAST_NewPC != nullptr) {
+		CAST_NewPC->InitPC(CAST_OldPC->GetMatchGameplayType(), CAST_OldPC->GetTeam());
+	}
+	Super::SwapPlayerControllers(OldPC, NewPC); //Must call super at the end as it destroys NewPC
 }
 
 void ARTS_FPSGameModeBase::CheckForPlayersLoaded() {
@@ -40,6 +51,14 @@ void ARTS_FPSGameModeBase::CheckForPlayersLoaded() {
 
 void ARTS_FPSGameModeBase::StartGame() {
 	bStarted = true;
+	TArray<AActor*> PlayerControllerActors;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerController::StaticClass(), PlayerControllerActors);
+	for (AActor* ActorPC : PlayerControllerActors) {
+		ARTSPlayerController* PC = Cast<ARTSPlayerController>(ActorPC);
+		if (PC != nullptr) {
+			PC->StartMatch();
+		}
+	}
 }
 
 void ARTS_FPSGameModeBase::TimeoutGame() {

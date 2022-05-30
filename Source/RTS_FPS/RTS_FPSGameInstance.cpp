@@ -2,6 +2,7 @@
 
 
 #include "RTS_FPSGameInstance.h"
+#include "UnitTracker.h"
 
 URTS_FPSGameInstance::URTS_FPSGameInstance(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -15,6 +16,11 @@ URTS_FPSGameInstance::URTS_FPSGameInstance(const FObjectInitializer& ObjectIniti
 	OnJoinSessionCompleteDelegate = FOnJoinSessionCompleteDelegate::CreateUObject(this, &URTS_FPSGameInstance::OnJoinSessionComplete);
 	/** Bind function for DESTROYING a Session */
 	OnDestroySessionCompleteDelegate = FOnDestroySessionCompleteDelegate::CreateUObject(this, &URTS_FPSGameInstance::OnDestroySessionComplete);
+}
+
+void URTS_FPSGameInstance::Shutdown() {
+	Super::Shutdown();
+	UUnitTracker::Empty();
 }
 
 bool URTS_FPSGameInstance::HostSession(TSharedPtr<const FUniqueNetId> UserId, FName SessionName, bool bIsLAN, bool bIsPresence, int32 MaxNumPlayers)
