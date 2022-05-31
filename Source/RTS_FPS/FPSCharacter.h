@@ -52,6 +52,9 @@ protected:
 
 	virtual void Die();
 
+	UFUNCTION(Server, WithValidation, Reliable)
+		void Server_KillPlayer();
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

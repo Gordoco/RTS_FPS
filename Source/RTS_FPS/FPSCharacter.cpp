@@ -2,6 +2,9 @@
 
 
 #include "FPSCharacter.h"
+#include "Kismet/GameplayStatics.h"
+#include "RTSPlayerController.h"
+#include "GameFramework/GameModeBase.h"
 
 // Sets default values
 AFPSCharacter::AFPSCharacter()
@@ -20,7 +23,19 @@ AFPSCharacter::AFPSCharacter()
 }
 
 void AFPSCharacter::Die() {
+	Server_KillPlayer();
+}
 
+bool AFPSCharacter::Server_KillPlayer_Validate() {
+	return true;
+}
+
+void AFPSCharacter::Server_KillPlayer_Implementation() {
+	ARTSPlayerController* PC = Cast<ARTSPlayerController>(GetController());
+	if (PC != nullptr) {
+		PC->MovePawnsToPlayerStarts(this);
+		Health = 100;
+	}
 }
 
 FHitResult AFPSCharacter::GetShotHit() {
