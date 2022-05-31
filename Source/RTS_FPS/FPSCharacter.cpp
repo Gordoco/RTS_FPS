@@ -19,6 +19,10 @@ AFPSCharacter::AFPSCharacter()
 
 }
 
+void AFPSCharacter::Die() {
+
+}
+
 FHitResult AFPSCharacter::GetShotHit() {
 	FHitResult Hit;
 	check(GetWorld() != nullptr);

@@ -39,6 +39,7 @@ private:
 	/*
 	***********************************************
 	*/
+	static const int MAX_MOVEMENT_ACTIONS = 10;
 
 	UPROPERTY()
 		UAIQueue* ActionQue;
@@ -71,11 +72,15 @@ private:
 		Attack Helper Functions
 	*/
 	UPROPERTY()
-	int DebugCount = 0;
+		int DebugCount = 0;
 
 	FTimerHandle AttackSpeedHandle;
 
-	FTimerHandle CheckBlockedMovementHandle;
+	FTimerHandle MovementCooldownHandle;
+
+	void MovementReset() { internal_MovementActionCount = 0; }
+
+	void MovementActionHandler();
 
 	void AttackActionHandler();
 
@@ -85,7 +90,9 @@ private:
 
 	void MakeAttack(ABaseUnit* Enemy, float inDamage);
 
-	void Die();
+	virtual void Die();
+
+	int internal_MovementActionCount = 0; //Only relevent on Server
 
 protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Brain")
@@ -133,6 +140,21 @@ public:
 	//Should be called on Server
 	UFUNCTION(BlueprintCallable, Category = "Stats")
 		bool IsDead() { return Health <= 0; }
+
+	UFUNCTION(NetMulticast, Unreliable)
+		void Die_Visuals();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Visuals")
+		void BP_Die_Visuals();
+
+	FTimerHandle PostDeathCleanupHandle;
+
+	float PostDeathCleanupTime = 10.f;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Attacking")
+		bool bAttacking = false;
+
+	void PostDeathCleanup() { Destroy(); }
 
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

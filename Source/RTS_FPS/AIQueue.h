@@ -48,6 +48,8 @@ class RTS_FPS_API UAIQueue : public UObject
 public:
 	UAIQueue();
 
+	void Invalidate();
+
 	bool IsEmpty();
 
 	FAction Peek();

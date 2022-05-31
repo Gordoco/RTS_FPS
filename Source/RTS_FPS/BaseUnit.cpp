@@ -7,6 +7,7 @@
 #include "AttackActionData.h"
 #include "UnitTracker.h"
 #include "FPSCharacter.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Runtime/Core/Public/Misc/AssertionMacros.h"
 #include "Engine.h"
 
@@ -31,6 +32,7 @@ void ABaseUnit::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifet
 	DOREPLIFETIME(ABaseUnit, Damage);
 	DOREPLIFETIME(ABaseUnit, AttackSpeed);
 	DOREPLIFETIME(ABaseUnit, Team);
+	DOREPLIFETIME(ABaseUnit, bAttacking);
 }
 
 //Called from all network roles
@@ -62,29 +64,31 @@ void ABaseUnit::SearchForEnemies(int prio) {
 void ABaseUnit::RecieveAction() {
 	check(HasAuthority());
 	if (HasAuthority()) {
-		if (!ActionQue->IsEmpty()) {
-			/*
-			Retrieve next action from queue (Based on priority)
-			*/
-			if (!DoneCurrentAction()) {
+		if (ActionQue != nullptr && Brain != nullptr) {
+			if (!ActionQue->IsEmpty()) {
+				/*
+				Retrieve next action from queue (Based on priority)
+				*/
+				if (!DoneCurrentAction()) {
 
-				if (CurrentAction.Priority < ActionQue->Peek().Priority) {
-					/*
-					Check and re-shuffle current action with highest priority
-					*/
-					FAction temp = ActionQue->DeleteMax();
-					ActionQue->Insert_NoCheck(CurrentAction);
-					CurrentAction = temp;
+					if (CurrentAction.Priority < ActionQue->Peek().Priority) {
+						/*
+						Check and re-shuffle current action with highest priority
+						*/
+						FAction temp = ActionQue->DeleteMax();
+						ActionQue->Insert_NoCheck(CurrentAction);
+						CurrentAction = temp;
+						RunAction();
+					}
+				}
+				else {
+					CurrentAction = ActionQue->DeleteMax();
 					RunAction();
 				}
 			}
 			else {
-				CurrentAction = ActionQue->DeleteMax();
-				RunAction();
+				Brain->FinishedCycle();
 			}
-		}
-		else {
-			Brain->FinishedCycle();
 		}
 	}
 }
@@ -149,15 +153,7 @@ void ABaseUnit::RunAction() {
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "RAN ACTION");
 		if (CurrentAction.ActionData != nullptr) {
 			if (CurrentAction.Action_Type == "MOVEMENT") {
-				InitCheckForCombat();
-				UMovementActionData* Data = Cast<UMovementActionData>(CurrentAction.ActionData);
-				if (Data != nullptr) {
-					//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Attempted Movement");
-					Cast<AAIController>(GetController())->MoveToLocation(Data->GetLocation());
-				}
-				else {
-					Debug_ActionCastError();
-				}
+				MovementActionHandler();
 			}
 			else if (CurrentAction.Action_Type == "ATTACK") {
 				AttackActionHandler();
@@ -169,8 +165,26 @@ void ABaseUnit::RunAction() {
 	}
 }
 
+void ABaseUnit::MovementActionHandler() {
+	if (internal_MovementActionCount < MAX_MOVEMENT_ACTIONS) {
+		InitCheckForCombat();
+		UMovementActionData* Data = Cast<UMovementActionData>(CurrentAction.ActionData);
+		if (Data != nullptr) {
+			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Attempted Movement");
+			AAIController* AIController = Cast<AAIController>(GetController());
+			if (AIController->IsValidLowLevel()) {
+				AIController->MoveToLocation(Data->GetLocation());
+			}
+		}
+		else {
+			Debug_ActionCastError();
+		}
+	}
+}
+
 //NEEDS WORK REGARDING FPS V UNIT COMBAT (ie. STRAFING, COVER, ETC.)
 void ABaseUnit::AttackActionHandler() {
+	bAttacking = true;
 	UAttackActionData* Data = Cast<UAttackActionData>(CurrentAction.ActionData);
 	if (Data != nullptr) {
 		ABaseUnit* Enemy = Data->GetEnemy();
@@ -219,12 +233,13 @@ FVector ABaseUnit::CalculateLocationInRange(FVector EnemyLocation) {
 
 //NEEDS CHANGING TO PROJECTILE/MELEE COMBAT AND TO MAKE INTERACTIVE WITH PLAYER
 void ABaseUnit::MakeAttack(ABaseUnit* Enemy, float inDamage) {
+	SetActorRotation(UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), Enemy->GetActorLocation()));
 	Enemy->DealDamage(inDamage);
 }
 
 void ABaseUnit::DealDamage(float inDamage) {
 	check(HasAuthority());
-	if (HasAuthority()) {
+	if (HasAuthority() && !IsDead()) {
 		Health = FMath::Clamp(Health - inDamage, 0, MaxHealth);
 		if (Health == 0) {
 			Die();
@@ -240,19 +255,35 @@ void ABaseUnit::Die() {
 	if (HasAuthority()) {
 		UUnitTracker::DeregisterUnit(this, Team);
 		GetWorld()->GetTimerManager().ClearTimer(CheckForCombatHandle);
+		GetWorld()->GetTimerManager().ClearTimer(AttackSpeedHandle);
+		GetWorld()->GetTimerManager().ClearTimer(MovementCooldownHandle);
 		if (ActionQue->IsValidLowLevel()) {
+			ActionQue->Invalidate();
 			ActionQue->ConditionalBeginDestroy();
+			ActionQue = nullptr;
 		}
 		if (Brain->IsValidLowLevel()) {
 			Brain->ConditionalBeginDestroy();
+			Brain = nullptr;
 		}
+		AAIController* AIController = Cast<AAIController>(GetController());
+		if (AIController != nullptr) {
+			AIController->StopMovement();
+			AIController->Destroy();
+		}
+		Die_Visuals();
+		GetWorld()->GetTimerManager().SetTimer(PostDeathCleanupHandle, this, &ABaseUnit::PostDeathCleanup, PostDeathCleanupTime, false);
 	}
-	Destroy();
+}
+
+void ABaseUnit::Die_Visuals_Implementation() {
+	BP_Die_Visuals();
 }
 
 void ABaseUnit::FinishAction() {
 	check(HasAuthority());
 	CurrentAction = FAction();
+	bAttacking = false;
 	RecieveAction();
 }
 
@@ -260,17 +291,15 @@ void ABaseUnit::FinishMovement(const FPathFollowingResult& Result) {
 	if (HasAuthority()) {
 		if (CurrentAction.Action_Type == "ATTACK") {
 			GetWorld()->GetTimerManager().ClearTimer(CheckForCombatHandle);
-			if (Result.Code != EPathFollowingResult::Success) {
-				//ATTEMPTING TO AVOID A STACK OVERFLOW WITH MASS UNITS. NEED A BETTER LONG TERM SOLUTION
-				GetWorld()->GetTimerManager().SetTimer(CheckBlockedMovementHandle, this, &ABaseUnit::FinishAction, 0.8, false);
-			}
-			else {
-				FinishAction();
+		}
+		if (Result.Code != EPathFollowingResult::Success) {
+			//ATTEMPTING TO AVOID A STACK OVERFLOW WITH MASS UNITS. NEED A BETTER LONG TERM SOLUTION
+			internal_MovementActionCount++;
+			if (!MovementCooldownHandle.IsValid()) {
+				GetWorld()->GetTimerManager().SetTimer(MovementCooldownHandle, this, &ABaseUnit::MovementReset, 0.75f, false);
 			}
 		}
-		else {
-			FinishAction();
-		}
+		FinishAction();
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::SanitizeFloat(Result.Code));
 	}
 }

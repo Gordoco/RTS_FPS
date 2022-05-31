@@ -32,6 +32,25 @@ public:
 	}
 };
 
+USTRUCT(BlueprintType) struct FPCData
+{
+	GENERATED_BODY()
+public:
+	APlayerController* Owner;
+
+	int MatchData = 0;
+	int Team = 0;
+
+	FPCData() {}
+
+	FPCData(APlayerController* inO, int inM, int inT) {
+		Owner = inO;
+		MatchData = inM;
+		Team = inT;
+	}
+		
+};
+
 
 UCLASS()
 class RTS_FPS_API ARTS_FPSGameModeBase : public AGameModeBase
@@ -71,6 +90,8 @@ private:
 	void StartGame();
 
 	void TimeoutGame();
+
+	TArray<FPCData> Data;
 
 protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Multiplayer")

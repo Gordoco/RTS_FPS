@@ -120,11 +120,14 @@ public:
 		void FindOnlineGames(bool bLAN);
 
 	UFUNCTION(BlueprintCallable, Category = "Network|Test")
-		void JoinOnlineGame();
+		void JoinOnlineGame(int ID);
 
 	UFUNCTION(BlueprintCallable, Category = "Network|Test")
 		void DestroySessionAndLeaveGame();
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "TESTING")
 		void JoinToServer();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "UI")
+		void CreateSearchResultWidget(int ID, const FString& UserName);
 };

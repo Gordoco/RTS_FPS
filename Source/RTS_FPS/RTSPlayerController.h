@@ -17,6 +17,8 @@ class RTS_FPS_API ARTSPlayerController : public APlayerController
 {
 	GENERATED_BODY()
 
+		ARTSPlayerController();
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -61,9 +63,12 @@ public:
 	UFUNCTION(Server, WithValidation, Reliable, BlueprintCallable, Category = "Init")
 		void JoinTeamAtPosition(int inTeam, int inMatchGameplayType);
 
-	UFUNCTION(Server, WithValidation, Reliable, BlueprintCallable, Category = "Init")
+	UFUNCTION(BlueprintCallable, Category = "Init")
 		void SpawnControlledPawn();
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Spawning")
 		void MovePawnsToPlayerStarts(APawn* inPawn);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "UI")
+		void CreatePlayerWidget(int inMatchGameplayType, int inTeam);
 };

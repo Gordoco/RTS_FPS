@@ -6,6 +6,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "Runtime/Core/Public/Misc/AssertionMacros.h"
 
+ARTSPlayerController::ARTSPlayerController() {}
+
 void ARTSPlayerController::BeginPlay() {
 	Super::BeginPlay();
 	FSlateApplication::Get().OnApplicationActivationStateChanged()
@@ -13,10 +15,9 @@ void ARTSPlayerController::BeginPlay() {
 }
 
 void ARTSPlayerController::StartMatch() {
-	if (IsLocalPlayerController() && Player->IsValidLowLevel()) {
+	if (Player->IsValidLowLevel()) {
 		if (UGameplayStatics::GetCurrentLevelName(GetWorld()) != "LobbyMenu" && UGameplayStatics::GetCurrentLevelName(GetWorld()) != "MainMenu") {
-			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "SPAWNING PAWNS");
-			bLoaded = true;
+			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "SPAWNING PAWNS");
 			SpawnControlledPawn();
 		}
 	}
@@ -41,31 +42,31 @@ void ARTSPlayerController::OnWindowFocusChanged(bool isFocused) {
 }
 
 void ARTSPlayerController::InitPC(int inMatchGameplayType, int inTeam) {
+	bLoaded = true;
 	Team = inTeam;
 	MatchGameplayType = inMatchGameplayType;
 }
 
-bool ARTSPlayerController::SpawnControlledPawn_Validate() {
-	return (MatchGameplayType < 2) && (MatchGameplayType > -1) && Team != -1;
-}
-
-void ARTSPlayerController::SpawnControlledPawn_Implementation() {
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::SanitizeFloat(Team) + "   " + FString::SanitizeFloat(MatchGameplayType));
+void ARTSPlayerController::SpawnControlledPawn() {
+	check(HasAuthority());
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::SanitizeFloat(Team) + "   " + FString::SanitizeFloat(MatchGameplayType));
 	if (GetPawn() != nullptr)
 		GetPawn()->Destroy();
 	if (MatchGameplayType == 0) {
-		ARTSPawn* thisPlayer = GetWorld()->SpawnActor<ARTSPawn>(CommanderClass, FVector(), FRotator());
+		ARTSPawn* thisPlayer = GetWorld()->SpawnActorDeferred<ARTSPawn>(CommanderClass, FTransform());
 		SetShowMouseCursor(true);
-		Possess(thisPlayer);
 		thisPlayer->Team = Team;
+		thisPlayer->FinishSpawning(FTransform());
+		Possess(thisPlayer);
 		MovePawnsToPlayerStarts(thisPlayer);
 		thisPlayer->Init();
 	}
 	else if (MatchGameplayType == 1) {
-		AFPSCharacter* thisPlayer = GetWorld()->SpawnActor<AFPSCharacter>(CommandoClass, FVector(), FRotator());
+		AFPSCharacter* thisPlayer = GetWorld()->SpawnActorDeferred<AFPSCharacter>(CommandoClass, FTransform());
 		SetShowMouseCursor(false);
-		Possess(thisPlayer);
 		thisPlayer->Team = Team;
+		thisPlayer->FinishSpawning(FTransform());
+		Possess(thisPlayer);
 		MovePawnsToPlayerStarts(thisPlayer);
 		thisPlayer->Init();
 	}
@@ -81,6 +82,7 @@ void ARTSPlayerController::JoinTeamAtPosition_Implementation(int inTeam, int inM
 	if (GM->RequestMatchPosition(FMatchRequest(inTeam, inMatchGameplayType), this)) {
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "SUCCESS");
 		InitPC(inMatchGameplayType, inTeam);
+		CreatePlayerWidget(inMatchGameplayType, inTeam);
 		bReady = true;
 	}
 	else {

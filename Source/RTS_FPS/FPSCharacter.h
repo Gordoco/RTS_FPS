@@ -50,6 +50,8 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Components")
 		UCameraComponent* FPSCamera;
 
+	virtual void Die();
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

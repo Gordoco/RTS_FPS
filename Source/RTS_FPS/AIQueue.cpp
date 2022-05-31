@@ -7,6 +7,11 @@
 
 UAIQueue::UAIQueue() {}
 
+void UAIQueue::Invalidate() {
+	Queue.Empty();
+	Owner = nullptr;
+}
+
 void UAIQueue::PrintNumActions() {
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::SanitizeFloat(Queue.Num()));
 }

@@ -194,7 +194,8 @@ void URTS_FPSGameInstance::OnFindSessionsComplete(bool bWasSuccessful)
 				{
 					// OwningUserName is just the SessionName for now. I guess you can create your own Host Settings class and GameSession Class and add a proper GameServer Name here.
 					// This is something you can't do in Blueprint for example!
-					GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Red, FString::Printf(TEXT("Session Number: %d | Sessionname: %s "), SearchIdx + 1, *(SessionSearch->SearchResults[SearchIdx].Session.OwningUserName)));
+					//GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Red, FString::Printf(TEXT("Session Number: %d | Sessionname: %s "), SearchIdx + 1, *(SessionSearch->SearchResults[SearchIdx].Session.OwningUserName)));
+					CreateSearchResultWidget(SearchIdx, SessionSearch->SearchResults[SearchIdx].Session.OwningUserName);
 				}
 			}
 		}
@@ -311,29 +312,18 @@ void URTS_FPSGameInstance::FindOnlineGames(bool bLAN)
 	FindSessions(Player->GetPreferredUniqueNetId().GetUniqueNetId(), bLAN, true);
 }
 
-void URTS_FPSGameInstance::JoinOnlineGame()
+void URTS_FPSGameInstance::JoinOnlineGame(int ID)
 {
 	ULocalPlayer* const Player = GetFirstGamePlayer();
 
-	// Just a SearchResult where we can save the one we want to use, for the case we find more than one!
-	FOnlineSessionSearchResult SearchResult;
-
-	// If the Array is not empty, we can go through it
-	if (SessionSearch->SearchResults.Num() > 0)
+	IOnlineSubsystem* const OnlineSub = IOnlineSubsystem::Get();
+	if (OnlineSub)
 	{
-		for (int32 i = 0; i < SessionSearch->SearchResults.Num(); i++)
+		// Get SessionInterface of the OnlineSubsystem
+		IOnlineSessionPtr Sessions = OnlineSub->GetSessionInterface();
+		if (Sessions.IsValid())
 		{
-			// To avoid something crazy, we filter sessions from ourself
-			if (SessionSearch->SearchResults[i].Session.OwningUserId != Player->GetPreferredUniqueNetId())
-			{
-				SearchResult = SessionSearch->SearchResults[i];
-
-				// Once we found sounce a Session that is not ours, just join it. Instead of using a for loop, you could
-				// use a widget where you click on and have a reference for the GameSession it represents which you can use
-				// here
-				RTS_FPSJoinSession(Player->GetPreferredUniqueNetId().GetUniqueNetId(), NAME_GameSession, SearchResult);
-				break;
-			}
+			RTS_FPSJoinSession(Player->GetPreferredUniqueNetId().GetUniqueNetId(), NAME_GameSession, SessionSearch->SearchResults[ID]);
 		}
 	}
 }

@@ -34,9 +34,9 @@ void ARTS_FPSGameModeBase::SwapPlayerControllers(APlayerController* OldPC, APlay
 	ARTSPlayerController* CAST_OldPC = Cast<ARTSPlayerController>(OldPC);
 	ARTSPlayerController* CAST_NewPC = Cast<ARTSPlayerController>(OldPC);
 	if (CAST_OldPC != nullptr && CAST_NewPC != nullptr) {
-		CAST_NewPC->InitPC(CAST_OldPC->GetMatchGameplayType(), CAST_OldPC->GetTeam());
+		Data.Add(FPCData(NewPC, CAST_OldPC->GetMatchGameplayType(), CAST_OldPC->GetTeam()));
 	}
-	Super::SwapPlayerControllers(OldPC, NewPC); //Must call super at the end as it destroys NewPC
+	Super::SwapPlayerControllers(OldPC, NewPC); //Must call super at the end as it destroys OldPC
 }
 
 void ARTS_FPSGameModeBase::CheckForPlayersLoaded() {
@@ -46,12 +46,21 @@ void ARTS_FPSGameModeBase::CheckForPlayersLoaded() {
 	for (AActor* ActorPC : PlayerControllerActors) {
 		ARTSPlayerController* PC = Cast<ARTSPlayerController>(ActorPC);
 		if (PC != nullptr) {
+			for (FPCData PCData : Data) {
+				if (PCData.Owner == PC) {
+					//GEngine->AddOnScreenDebugMessage(-1, 20.f, FColor::Red, GetDebugName(PC) + " should equal " + GetDebugName(PCData.Owner) + " || M: " + FString::SanitizeFloat(PCData.MatchData) + " T: " + FString::SanitizeFloat(PCData.Team));
+					PC->InitPC(PCData.MatchData, PCData.Team);
+				}
+			}
 			bStart = PC->HasClientLoadedCurrentWorld();
 		}
 	}
-	GetWorld()->GetTimerManager().ClearTimer(CheckForPlayersLoadedHandle);
-	GetWorld()->GetTimerManager().ClearTimer(TimeoutHandle);
-	StartGame();
+	if (bStart) {
+		GetWorld()->GetTimerManager().ClearTimer(CheckForPlayersLoadedHandle);
+		GetWorld()->GetTimerManager().ClearTimer(TimeoutHandle);
+		Data.Empty();
+		StartGame();
+	}
 }
 
 void ARTS_FPSGameModeBase::StartGame() {
