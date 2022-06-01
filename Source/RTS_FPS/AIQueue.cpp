@@ -68,7 +68,7 @@ void UAIQueue::Insert(FAction Action) {
 
 //O(n)
 FAction UAIQueue::DeleteMax() {
-	//PrintNumActions();
+	PrintNumActions();
 	FAction ReturnAction = Peek();
 	if (!IsEmpty()) {
 		Queue[0] = Queue[Queue.Num() - 1];

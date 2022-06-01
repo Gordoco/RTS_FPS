@@ -129,7 +129,7 @@ void ABaseUnit::CheckForCombatIterator() {
 	if (HasAuthority()) {
 		TArray<ABaseUnit*> PotentialEnemys = UUnitTracker::GetUnitsInRange(Team, VisionRange, GetActorLocation());
 		for (ABaseUnit* PotentialEnemy : PotentialEnemys) {
-			if (!EnemyList.Contains(PotentialEnemy)) {
+			if (!EnemyList.Contains(PotentialEnemy) && !IsDead() && !PotentialEnemy->IsDead()) {
 				float Dist = FVector::Dist(PotentialEnemy->GetActorLocation(), GetActorLocation());
 				if (Dist <= VisionRange) {
 					AddAttackAction(PotentialEnemy, UNIT_RESPONSE_PRIORITY);
@@ -254,6 +254,7 @@ void ABaseUnit::Die() {
 	*/
 	if (HasAuthority()) {
 		UUnitTracker::DeregisterUnit(this, Team);
+		GetCapsuleComponent()->SetCollisionResponseToAllChannels(ECR_Ignore);
 		GetWorld()->GetTimerManager().ClearTimer(CheckForCombatHandle);
 		GetWorld()->GetTimerManager().ClearTimer(AttackSpeedHandle);
 		GetWorld()->GetTimerManager().ClearTimer(MovementCooldownHandle);
@@ -289,9 +290,7 @@ void ABaseUnit::FinishAction() {
 
 void ABaseUnit::FinishMovement(const FPathFollowingResult& Result) {
 	if (HasAuthority()) {
-		if (CurrentAction.Action_Type == "ATTACK") {
-			GetWorld()->GetTimerManager().ClearTimer(CheckForCombatHandle);
-		}
+		GetWorld()->GetTimerManager().ClearTimer(CheckForCombatHandle);
 		if (Result.Code != EPathFollowingResult::Success) {
 			//ATTEMPTING TO AVOID A STACK OVERFLOW WITH MASS UNITS. NEED A BETTER LONG TERM SOLUTION
 			internal_MovementActionCount++;
