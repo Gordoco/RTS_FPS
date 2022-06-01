@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "Net/UnrealNetwork.h"
+#include "Components/BoxComponent.h"
 #include "BaseBuilding.h"
 #include "BaseUnit.h"
 #include "Components/StaticMeshComponent.h"
@@ -59,6 +60,12 @@ public:
 	void ShouldTakeInput(bool bInput) { bShouldMove = bInput; }
 
 private:
+	//UPROPERTY TO AVOID GARBAGE COLLECTION. SHOULD NEVER BE REFERENCED OUTSIDE OF DRAWSELECTIONBOX()
+	UPROPERTY()
+		UBoxComponent* SelectionBox;
+
+	FVector StartLocation;
+
 	UPROPERTY(ReplicatedUsing = OnRep_SetLocation)
 		FVector PlayerLocation;
 
@@ -87,12 +94,35 @@ private:
 
 	void DrawSelectionBox();
 
-	TArray<ABaseUnit*> SelectedUnits;
+	void ReleaseLeftClick();
+
+	void EvaluateHitUnit(ABaseUnit* HitUnit);
+
+	UPROPERTY(Replicated)
+		TArray<ABaseUnit*> SelectedUnits;
 
 	UFUNCTION(Server, Unreliable, WithValidation)
 		void Server_FinalizeBuildingPlacement(FTransform Transform);
 
 	void PlayerRightClick();
+
+	void DeselectAllUnits();
+
+	UFUNCTION(Server, WithValidation, Reliable)
+		void OrderUnits(FHitResult Hit);
+
+	UFUNCTION(Server, Unreliable, WithValidation)
+		void SelectUnit(ABaseUnit* Unit);
+
+	UFUNCTION(Server, Unreliable, WithValidation)
+		void DeselectUnit(ABaseUnit* Unit);
+
+	UFUNCTION(Server, Unreliable, WithValidation)
+		void DeselectAll();
+
+	void OrderMovement(FVector LocationToMove);
+
+	void OrderAttack(ABaseUnit* EnemyUnit);
 
 	APlayerController* GetPC();
 

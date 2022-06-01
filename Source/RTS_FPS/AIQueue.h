@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
 #include "ActionData.h"
-#include "MovementActionData.h"
 #include "AIQueue.generated.h"
 
 
@@ -38,6 +37,7 @@ public:
 
 };
 
+
 /**
  *
  */
@@ -59,6 +59,8 @@ public:
 	void Insert(FAction Action);
 
 	void Insert_NoCheck(FAction Action);
+
+	void Empty();
 
 	FString Debug_ListActions();
 

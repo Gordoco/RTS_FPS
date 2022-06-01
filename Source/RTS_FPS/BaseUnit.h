@@ -7,6 +7,7 @@
 #include "AIQueue.h"
 #include "Net/UnrealNetwork.h"
 #include "TimerManager.h"
+#include "PaperSpriteComponent.h"
 #include "BaseBrain.h"
 #include "Navigation/PathFollowingComponent.h"
 #include "BaseUnit.generated.h"
@@ -27,18 +28,25 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Damage")
 		void DealDamage(float inDamage);
-
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-private:
 	/*
 	PRIORITY CONSTANTS FOR AI QUEUE****************
 	*/
 	static const int UNIT_RESPONSE_PRIORITY = 10;
+
+	static const int UNIT_ORDERED_PRIORITY = 20;
+
+	static const int UNIT_SMART_ORDERED_PRIORITY = 8;
 	/*
 	***********************************************
 	*/
+
+protected:
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Selection")
+		UPaperSpriteComponent* SelectionSprite;
+private:
 	static const int MAX_MOVEMENT_ACTIONS = 10;
 
 	UPROPERTY()
@@ -76,10 +84,6 @@ private:
 
 	FTimerHandle AttackSpeedHandle;
 
-	FTimerHandle MovementCooldownHandle;
-
-	void MovementReset() { internal_MovementActionCount = 0; }
-
 	void MovementActionHandler();
 
 	void AttackActionHandler();
@@ -91,8 +95,6 @@ private:
 	void MakeAttack(ABaseUnit* Enemy, float inDamage);
 
 	virtual void Die();
-
-	int internal_MovementActionCount = 0; //Only relevent on Server
 
 protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Brain")
@@ -128,6 +130,10 @@ public:
 	//Keeps an up-to-date list of all enemys with an active attack action
 	TArray<ABaseUnit*> EnemyList;
 
+	bool RemoveEnemyFromList(ABaseUnit* Enemy);
+
+	void EmptyQue();
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Team", Replicated, Meta = (ExposeOnSpawn = "true"))
 		int Team = 0;
 
@@ -160,6 +166,8 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	void Selected();
+
+	void Deselected();
 
 	int GetTeam() { return Team; }
 

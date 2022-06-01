@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "ActionData.h"
+#include "AIQueue.h"
 #include "MovementActionData.generated.h"
 
 /**
@@ -20,6 +21,9 @@ public:
 	void SetLocation(FVector inLocation) { LocationToMove = inLocation; }
 
 	FVector GetLocation() { return LocationToMove; }
+
+	//TEMP FIX
+	FAction* OwningAttack;
 
 protected:
 	FVector LocationToMove = FVector(0.f, 0.f, 0.f);

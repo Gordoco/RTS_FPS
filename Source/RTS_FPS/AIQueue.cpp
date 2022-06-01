@@ -4,6 +4,8 @@
 #include "AIQueue.h"
 #include "Engine.h"
 #include "BaseUnit.h"
+#include "MovementActionData.h"
+#include "AttackActionData.h"
 
 UAIQueue::UAIQueue() {}
 
@@ -27,6 +29,19 @@ FAction UAIQueue::Peek() {
 		return Queue[0];
 	}
 	return FAction();
+}
+
+void UAIQueue::Empty() {
+	for (FAction Action : Queue) {
+		if (Action.Action_Type == "ATTACK") {
+			ABaseUnit* OwningUnit = Cast<ABaseUnit>(Owner);
+			UAttackActionData* Data = Cast<UAttackActionData>(Action.ActionData);
+			if (Data != nullptr && OwningUnit != nullptr) {
+				OwningUnit->RemoveEnemyFromList(Data->GetEnemy());
+			}
+		}
+	}
+	Queue.Empty();
 }
 
 //O(log(n))
@@ -68,7 +83,7 @@ void UAIQueue::Insert(FAction Action) {
 
 //O(n)
 FAction UAIQueue::DeleteMax() {
-	PrintNumActions();
+	//PrintNumActions();
 	FAction ReturnAction = Peek();
 	if (!IsEmpty()) {
 		Queue[0] = Queue[Queue.Num() - 1];

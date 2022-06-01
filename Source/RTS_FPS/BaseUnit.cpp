@@ -20,6 +20,11 @@ ABaseUnit::ABaseUnit()
 
 	bReplicates = true;
 	SetReplicateMovement(true);
+
+	SelectionSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("SELECTION"));
+	SelectionSprite->SetupAttachment(RootComponent);
+	SelectionSprite->SetCollisionResponseToAllChannels(ECR_Ignore);
+	SelectionSprite->SetVisibility(false);
 }
 
 void ABaseUnit::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const {
@@ -37,7 +42,20 @@ void ABaseUnit::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifet
 
 //Called from all network roles
 void ABaseUnit::Selected() {
-	
+	SelectionSprite->SetVisibility(true);
+}
+
+//Called from all network roles
+void ABaseUnit::Deselected() {
+	SelectionSprite->SetVisibility(false);
+}
+
+void ABaseUnit::EmptyQue() {
+	if (ActionQue->IsValidLowLevel()) {
+		GetWorld()->GetTimerManager().ClearTimer(CheckForCombatHandle);
+		GetWorld()->GetTimerManager().ClearTimer(AttackSpeedHandle);
+		ActionQue->Empty();
+	}
 }
 
 void ABaseUnit::AddAction(FAction Action) {
@@ -126,10 +144,10 @@ void ABaseUnit::InitCheckForCombat() {
 
 void ABaseUnit::CheckForCombatIterator() {
 	check(HasAuthority());
-	if (HasAuthority()) {
+	if (HasAuthority() && !IsDead()) {
 		TArray<ABaseUnit*> PotentialEnemys = UUnitTracker::GetUnitsInRange(Team, VisionRange, GetActorLocation());
 		for (ABaseUnit* PotentialEnemy : PotentialEnemys) {
-			if (!EnemyList.Contains(PotentialEnemy) && !IsDead() && !PotentialEnemy->IsDead()) {
+			if (!EnemyList.Contains(PotentialEnemy) && !PotentialEnemy->IsDead()) {
 				float Dist = FVector::Dist(PotentialEnemy->GetActorLocation(), GetActorLocation());
 				if (Dist <= VisionRange) {
 					AddAttackAction(PotentialEnemy, UNIT_RESPONSE_PRIORITY);
@@ -166,19 +184,17 @@ void ABaseUnit::RunAction() {
 }
 
 void ABaseUnit::MovementActionHandler() {
-	if (internal_MovementActionCount < MAX_MOVEMENT_ACTIONS) {
-		InitCheckForCombat();
-		UMovementActionData* Data = Cast<UMovementActionData>(CurrentAction.ActionData);
-		if (Data != nullptr) {
-			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Attempted Movement");
-			AAIController* AIController = Cast<AAIController>(GetController());
-			if (AIController->IsValidLowLevel()) {
-				AIController->MoveToLocation(Data->GetLocation());
-			}
+	InitCheckForCombat();
+	UMovementActionData* Data = Cast<UMovementActionData>(CurrentAction.ActionData);
+	if (Data != nullptr) {
+		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Attempted Movement");
+		AAIController* AIController = Cast<AAIController>(GetController());
+		if (AIController->IsValidLowLevel()) {
+			AIController->MoveToLocation(Data->GetLocation());
 		}
-		else {
-			Debug_ActionCastError();
-		}
+	}
+	else {
+		Debug_ActionCastError();
 	}
 }
 
@@ -190,30 +206,38 @@ void ABaseUnit::AttackActionHandler() {
 		ABaseUnit* Enemy = Data->GetEnemy();
 		//Verify Enemy pointer validity (NOT Safe to Destroy() on death, Call Die() Instead), Check if Enemy should be dead, Check if within StopRange
 		if (Enemy->IsValidLowLevel() && !Enemy->IsDead() && FVector::Dist(Enemy->GetActorLocation(), GetActorLocation()) <= StopRange) {
+
 			//GEngine->AddOnScreenDebugMessage(12, 5.f, FColor::Green, "SHOULD ATTACK/MOVE AND ATTACK");
 			if (CheckIfInRange(Enemy->GetActorLocation())) {
 				//GEngine->AddOnScreenDebugMessage(13, 5.f, FColor::Green, "IN RANGE (ATTACKING)");
-				//Enemy->AddAttackAction(this, UNIT_RESPONSE_PRIORITY);
 				MakeAttack(Enemy, Damage);
-				GetWorld()->GetTimerManager().SetTimer(AttackSpeedHandle, this, &ABaseUnit::AttackActionHandler, AttackSpeed, false);
 			}
 			else {
 				//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "OUT OF RANGE (MOVING TO: " + CalculateLocationInRange(Enemy->GetActorLocation()).ToString() + ")");
-				AddMovementAction(CalculateLocationInRange(Enemy->GetActorLocation()), CurrentAction.Priority + 1);
+				CheckForCombatIterator();
+				AddMovementAction(CalculateLocationInRange(Enemy->GetActorLocation()), CurrentAction.Priority);
+				RemoveEnemyFromList(Enemy);
+				FinishAction();
 			}
 		}
 		else {
-			if (Enemy->IsValidLowLevel()) {
-				if (EnemyList.Contains(Enemy)) {
-					EnemyList.Remove(Enemy);
-				}
-			}
+			RemoveEnemyFromList(Enemy);
 			FinishAction();
 		}
 	}
 	else {
 		Debug_ActionCastError();
 	}
+}
+
+bool ABaseUnit::RemoveEnemyFromList(ABaseUnit* Enemy) {
+	if (Enemy->IsValidLowLevel()) {
+		if (EnemyList.Contains(Enemy)) {
+			EnemyList.Remove(Enemy);
+			return true;
+		}
+	}
+	return false;
 }
 
 bool ABaseUnit::CheckIfInRange(FVector Location) {
@@ -235,6 +259,7 @@ FVector ABaseUnit::CalculateLocationInRange(FVector EnemyLocation) {
 void ABaseUnit::MakeAttack(ABaseUnit* Enemy, float inDamage) {
 	SetActorRotation(UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), Enemy->GetActorLocation()));
 	Enemy->DealDamage(inDamage);
+	GetWorld()->GetTimerManager().SetTimer(AttackSpeedHandle, this, &ABaseUnit::AttackActionHandler, AttackSpeed, false);
 }
 
 void ABaseUnit::DealDamage(float inDamage) {
@@ -254,10 +279,10 @@ void ABaseUnit::Die() {
 	*/
 	if (HasAuthority()) {
 		UUnitTracker::DeregisterUnit(this, Team);
+		SelectionSprite->SetVisibility(false);
 		GetCapsuleComponent()->SetCollisionResponseToAllChannels(ECR_Ignore);
 		GetWorld()->GetTimerManager().ClearTimer(CheckForCombatHandle);
 		GetWorld()->GetTimerManager().ClearTimer(AttackSpeedHandle);
-		GetWorld()->GetTimerManager().ClearTimer(MovementCooldownHandle);
 		if (ActionQue->IsValidLowLevel()) {
 			ActionQue->Invalidate();
 			ActionQue->ConditionalBeginDestroy();
@@ -291,12 +316,9 @@ void ABaseUnit::FinishAction() {
 void ABaseUnit::FinishMovement(const FPathFollowingResult& Result) {
 	if (HasAuthority()) {
 		GetWorld()->GetTimerManager().ClearTimer(CheckForCombatHandle);
-		if (Result.Code != EPathFollowingResult::Success) {
+		if (!Result.IsSuccess()) {
 			//ATTEMPTING TO AVOID A STACK OVERFLOW WITH MASS UNITS. NEED A BETTER LONG TERM SOLUTION
-			internal_MovementActionCount++;
-			if (!MovementCooldownHandle.IsValid()) {
-				GetWorld()->GetTimerManager().SetTimer(MovementCooldownHandle, this, &ABaseUnit::MovementReset, 0.75f, false);
-			}
+
 		}
 		FinishAction();
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::SanitizeFloat(Result.Code));
