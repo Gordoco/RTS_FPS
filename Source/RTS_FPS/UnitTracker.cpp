@@ -8,19 +8,22 @@
 
 TArray<ABaseUnit*> UUnitTracker::GetUnitsInRange(int Team, float inRange, FVector Location) {
 	TArray<ABaseUnit*> returnArray;
+	TArray<ABaseUnit*> invalidsArray;
 	check(Team < Teams.Num() && Team > -1);
 	if (Team < Teams.Num() && Team > -1) {
 		float lowest = (float)INT_MAX;
 		for (int i = 0; i < UUnitTracker::Teams.Num(); i++) {
 			if (i != Team) {
 				for (ABaseUnit* Unit : Teams[i].Units) {
-					float dist = FVector::Dist(Unit->GetActorLocation(), Location);
-					if (dist < lowest) {
-						returnArray.Push(Unit);
-						lowest = dist;
-					}
-					else {
-						returnArray.Add(Unit);
+					if (Unit->IsValidLowLevel()) {
+						float dist = FVector::Dist(Unit->GetActorLocation(), Location);
+						if (dist < lowest) {
+							returnArray.Push(Unit);
+							lowest = dist;
+						}
+						else {
+							returnArray.Add(Unit);
+						}
 					}
 				}
 			}
@@ -50,6 +53,11 @@ ABaseUnit* UUnitTracker::GetClosestUnit(int Team, FVector Location) {
 
 void UUnitTracker::RegisterUnit(ABaseUnit* Unit, int Team) {
 	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "REGISTERED UNIT ON TEAM: " + FString::SanitizeFloat(Team));
+	// 
+	//Hacky Initialization Attempt (FIX LATER)
+	if (UUnitTracker::Teams.Num() == 0) {
+		UUnitTracker::Teams.Add(FTeamData());
+	}
 	check(Team <= UUnitTracker::Teams.Num() && Unit != nullptr);
 	if (Team <= UUnitTracker::Teams.Num() && Unit != nullptr) {
 		if (Team == UUnitTracker::Teams.Num()) {

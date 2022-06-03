@@ -25,6 +25,8 @@ public:
 	//TEMP FIX
 	FAction* OwningAttack;
 
+	float AcceptableRadius = 1.f;
+
 protected:
 	FVector LocationToMove = FVector(0.f, 0.f, 0.f);
 };

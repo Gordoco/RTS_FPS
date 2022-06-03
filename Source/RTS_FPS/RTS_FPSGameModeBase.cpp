@@ -86,7 +86,7 @@ void ARTS_FPSGameModeBase::TimeoutGame() {
 }
 
 bool ARTS_FPSGameModeBase::RequestMatchPosition(FMatchRequest inRequest, APlayerController* RequestingPC) {
-	if (inRequest.MatchGameplayType == 1) {
+	/*if (inRequest.MatchGameplayType == 1) {
 		return true;
 	}
 	switch (inRequest.Team) {
@@ -103,5 +103,6 @@ bool ARTS_FPSGameModeBase::RequestMatchPosition(FMatchRequest inRequest, APlayer
 			}
 			break;
 	}
-	return false;
+	return false;*/
+	return true;
 }

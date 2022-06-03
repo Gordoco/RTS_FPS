@@ -66,9 +66,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Init")
 		void SpawnControlledPawn();
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "Init")
+		void CreatePlayerHUDs();
+
 	UFUNCTION(BlueprintImplementableEvent, Category = "Spawning")
 		void MovePawnsToPlayerStarts(APawn* inPawn);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "UI")
-		void CreatePlayerWidget(int inMatchGameplayType, int inTeam);
+		void CreatePlayerWidget(int inMatchGameplayType, int inTeam, const FString& PlayerName);
 };

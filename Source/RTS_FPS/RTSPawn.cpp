@@ -3,8 +3,10 @@
 
 #include "RTSPawn.h"
 #include "Engine.h"
+#include "BaseProductionBuilding.h"
 #include "Runtime/Core/Public/Misc/AssertionMacros.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
 
 // Sets default values
 ARTSPawn::ARTSPawn()
@@ -13,6 +15,14 @@ ARTSPawn::ARTSPawn()
 	PrimaryActorTick.bCanEverTick = true;
 
 	bReplicates = true;
+
+	GetCapsuleComponent()->SetCollisionResponseToAllChannels(ECR_Ignore);
+	GetMesh()->SetCollisionResponseToAllChannels(ECR_Ignore);
+	GetCharacterMovement()->DefaultLandMovementMode = EMovementMode::MOVE_Flying;
+	GetCharacterMovement()->DefaultWaterMovementMode = EMovementMode::MOVE_Flying;
+	GetCharacterMovement()->BrakingDecelerationFlying = MovementSpeed * 1.5;
+	GetCharacterMovement()->MaxFlySpeed = MovementSpeed;
+	
 }
 
 void ARTSPawn::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const
@@ -22,6 +32,8 @@ void ARTSPawn::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifeti
 	DOREPLIFETIME(ARTSPawn, CurrentTemplateClass);
 	DOREPLIFETIME(ARTSPawn, BuildingMesh);
 	DOREPLIFETIME(ARTSPawn, SelectedUnits);
+	DOREPLIFETIME(ARTSPawn, SelectedBuildings);
+	DOREPLIFETIME(ARTSPawn, bShiftPressed);
 }
 
 // Called when the game starts or when spawned
@@ -68,6 +80,7 @@ void ARTSPawn::Server_CreateBuilding_Implementation(TSubclassOf<ABaseBuilding> B
 		Server_CurrentBuilding = GetWorld()->SpawnActorDeferred<ABaseBuilding>(BuildingClass, FTransform());
 		if (Server_CurrentBuilding != nullptr) {
 			Server_CurrentBuilding->SetActorHiddenInGame(true);
+			Server_CurrentBuilding->SetTeam(Team);
 			BuildingMesh = Server_CurrentBuilding->GetFinalMesh();
 			//GEngine->AddOnScreenDebugMessage(72, 5.f, FColor::Green, "SERVER: Pre-Spawned Building");
 			CurrentTemplateClass = Server_CurrentBuilding->TemplateClass;
@@ -112,11 +125,12 @@ void ARTSPawn::Tick(float DeltaTime)
 	if (IsLocallyControlled() && bShouldMove) {
 		CalculateMovement();
 		if (!MovementDirection.IsZero()) {
-			const FVector newLocation = GetActorLocation() + (MovementDirection * DeltaTime * MovementSpeed);
-			SetMyLocation(newLocation);
+			//const FVector newLocation = GetActorLocation() + (MovementDirection * DeltaTime * MovementSpeed);
+			AddMovementInput(MovementDirection, 1);
+			//SetMyLocation(newLocation);
 		}
 	}
-	if (SelectionBox->IsValidLowLevel()) {
+	if (SelectionBox != nullptr && SelectionBox->IsValidLowLevel()) {
 		APlayerController* PC = GetPC();
 		check(PC != nullptr);
 		if (PC != nullptr) {
@@ -149,10 +163,12 @@ void ARTSPawn::OnRep_SetLocation() {
 	SetActorLocation(PlayerLocation);
 }
 
+//DEPRICATED
 bool ARTSPawn::SetMyLocation_Validate(FVector Location) {
 	return true;
 }
 
+//DEPRICATED
 void ARTSPawn::SetMyLocation_Implementation(FVector Location) {
 	SetActorLocation(Location);
 	PlayerLocation = Location;
@@ -160,7 +176,8 @@ void ARTSPawn::SetMyLocation_Implementation(FVector Location) {
 
 void ARTSPawn::CalculateMovement() {
 	FVector2D Screen = GetScreenSize();
-	FVector2D Mouse = GetMousePosition();
+	FVector2D Mouse;
+	GEngine->GameViewport->GetMousePosition(Mouse);
 
 	float val1 = 0;
 	float val2 = 0;
@@ -168,8 +185,13 @@ void ARTSPawn::CalculateMovement() {
 	const float ScreenPercentage = 0.03;
 	const float Margin = Screen.X * ScreenPercentage;
 
-	if (Mouse.X != -1 || Mouse.Y != -1) {
-
+	#ifdef UE_BUILD_DEBUG
+		//DebugCallsMovement(Screen, Mouse, val1, val2, Margin);
+	#endif
+	if (UKismetMathLibrary::NearlyEqual_FloatFloat(Mouse.X, 0, 0.1) && UKismetMathLibrary::NearlyEqual_FloatFloat(Mouse.Y, 0, 0.1)) {
+		MovementDirection = CachedMovementDirection;
+	}
+	else {
 		if (Mouse.X >= Screen.X - Margin) {
 			val1 = Mouse.X / Screen.X;
 		}
@@ -183,16 +205,9 @@ void ARTSPawn::CalculateMovement() {
 		else if (Mouse.Y <= Margin) {
 			val2 = -1 * (Mouse.Y - Margin) / Margin;
 		}
-
 		MovementDirection = (GetActorRightVector() * val1) + (GetActorForwardVector() * val2);
+		CachedMovementDirection = MovementDirection;
 	}
-	else {
-		MovementDirection = FVector(0, 0, 0);
-	}
-
-	#ifdef UE_BUILD_DEBUG
-		//DebugCallsMovement(Screen, Mouse, val1, val2, Margin);
-	#endif
 
 }
 
@@ -241,42 +256,76 @@ void ARTSPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAction("PrimaryAction", IE_Pressed, this, &ARTSPawn::PlayerClick);
 	PlayerInputComponent->BindAction("PrimaryAction", IE_Released, this, &ARTSPawn::ReleaseLeftClick);
 
+	PlayerInputComponent->BindAction("Shift", IE_Pressed, this, &ARTSPawn::PShift);
+	PlayerInputComponent->BindAction("Shift", IE_Released, this, &ARTSPawn::RShift);
+
 	PlayerInputComponent->BindAction("SecondaryAction", IE_Pressed, this, &ARTSPawn::PlayerRightClick);
+}
+
+bool ARTSPawn::PShift_Validate() {
+	return bShiftPressed == false;
+}
+
+void ARTSPawn::PShift_Implementation() {
+	bShiftPressed = true;
+}
+
+bool ARTSPawn::RShift_Validate() {
+	return bShiftPressed == true;
+}
+
+void ARTSPawn::RShift_Implementation() {
+	bShiftPressed = false;
 }
 
 void ARTSPawn::PlayerClick() 
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, "Clicked");
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, "Clicked");
 	if (CheckPlacingBuilding() && IsLocallyControlled()) {
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, "Locally Controlled and Placing in Progress");
+		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, "Locally Controlled and Placing in Progress");
 		Server_FinalizeBuildingPlacement(CurrentTemplate->GetTransform());
 		CurrentTemplate->Destroy();
 		CurrentTemplate = nullptr;
 	}
 	else {
-		DrawSelectionBox();
+		APlayerController* PC = GetPC();
+		check(PC != nullptr);
+		if (PC != nullptr) {
+			//Generic Single Select (PURELY CLIENT SIDE)*****
+			FHitResult Hit;
+			PC->GetHitResultUnderCursor(ECC_Camera, false, Hit);
+			ABaseUnit* HitUnit = Cast<ABaseUnit>(Hit.GetActor());
+			ABaseBuilding* HitBuilding = Cast<ABaseBuilding>(Hit.GetActor());
+			if (HitUnit != nullptr) {
+				EvaluateHitUnit(HitUnit);
+			}
+			else if (HitBuilding != nullptr){
+				EvaluateHitBuilding(HitBuilding);
+			}
+			else {
+				for (int i = 0; i < SelectedUnits.Num(); i++) {
+					SelectedUnits[i]->Deselected();
+				}
+				for (int i = 0; i < SelectedBuildings.Num(); i++) {
+					SelectedBuildings[i]->Deselected();
+				}
+				DeselectAll();
+			}
+			DrawSelectionBox(Hit);
+		}
 	}
 }
 
-void ARTSPawn::DrawSelectionBox() 
+void ARTSPawn::DrawSelectionBox(FHitResult Hit) 
 {
 	//Add in combination with unit selection
-	APlayerController* PC = GetPC();
-	check(PC != nullptr);
-	if (PC != nullptr) {
-		//Generic Single Select (PURELY CLIENT SIDE)*****
-		FHitResult Hit;
-		PC->GetHitResultUnderCursor(ECC_Camera, false, Hit);
-		ABaseUnit* HitUnit = Cast<ABaseUnit>(Hit.GetActor());
-		EvaluateHitUnit(HitUnit);
-		SelectionBox = NewObject<UBoxComponent>(this, UBoxComponent::StaticClass(), FName(TEXT("SelectionBoxName")));
-		SelectionBox->RegisterComponent();
-		SelectionBox->SetVisibility(true);
-		SelectionBox->bHiddenInGame = false;
-		SelectionBox->SetWorldTransform(FTransform(Hit.Location));
-		StartLocation = Hit.Location;
-		//***********************************************
-	}
+	SelectionBox = NewObject<UBoxComponent>(this, UBoxComponent::StaticClass(), FName(TEXT("SelectionBoxName")));
+	SelectionBox->RegisterComponent();
+	SelectionBox->SetVisibility(true);
+	SelectionBox->bHiddenInGame = false;
+	SelectionBox->SetWorldTransform(FTransform(Hit.Location));
+	StartLocation = Hit.Location;
+	//***********************************************
 }
 
 void ARTSPawn::EvaluateHitUnit(ABaseUnit* HitUnit) {
@@ -292,12 +341,28 @@ void ARTSPawn::EvaluateHitUnit(ABaseUnit* HitUnit) {
 		for (int i = 0; i < SelectedUnits.Num(); i++) {
 			SelectedUnits[i]->Deselected();
 		}
+		for (int i = 0; i < SelectedBuildings.Num(); i++) {
+			SelectedBuildings[i]->Deselected();
+		}
 		DeselectAll();
 	}
 }
 
+void ARTSPawn::EvaluateHitBuilding(ABaseBuilding* HitBuilding) {
+	for (int i = 0; i < SelectedUnits.Num(); i++) {
+		SelectedUnits[i]->Deselected();
+	}
+	for (int i = 0; i < SelectedBuildings.Num(); i++) {
+		SelectedBuildings[i]->Deselected();
+	}
+	DeselectAll();
+	if (HitBuilding->GetTeam() == Team) {
+		SelectBuilding(HitBuilding);
+		HitBuilding->Selected();
+	}
+}
+
 void ARTSPawn::ReleaseLeftClick() {
-	check(SelectionBox->IsValidLowLevel());
 	if (SelectionBox->IsValidLowLevel()) {
 		TArray<AActor*> Units;
 		SelectionBox->GetOverlappingActors(Units, ABaseUnit::StaticClass());
@@ -320,6 +385,7 @@ bool ARTSPawn::DeselectAll_Validate() {
 
 void ARTSPawn::DeselectAll_Implementation() {
 	SelectedUnits.Empty();
+	SelectedBuildings.Empty();
 }
 
 bool ARTSPawn::SelectUnit_Validate(ABaseUnit* Unit) {
@@ -336,6 +402,22 @@ bool ARTSPawn::DeselectUnit_Validate(ABaseUnit* Unit) {
 
 void ARTSPawn::DeselectUnit_Implementation(ABaseUnit* Unit) {
 	SelectedUnits.Remove(Unit);
+}
+
+bool ARTSPawn::SelectBuilding_Validate(ABaseBuilding* Building) {
+	return (Building != nullptr) && (Building->GetTeam() == Team);
+}
+
+void ARTSPawn::SelectBuilding_Implementation(ABaseBuilding* Building) {
+	SelectedBuildings.Add(Building);
+}
+
+bool ARTSPawn::DeselectBuilding_Validate(ABaseBuilding* Building) {
+	return (Building != nullptr);
+}
+
+void ARTSPawn::DeselectBuilding_Implementation(ABaseBuilding* Building) {
+	SelectedBuildings.Remove(Building);
 }
 
 bool ARTSPawn::Server_FinalizeBuildingPlacement_Validate(FTransform Transform) 
@@ -361,7 +443,12 @@ void ARTSPawn::PlayerRightClick()
 		//Generic Single Select (PURELY CLIENT SIDE)*****
 		FHitResult Hit;
 		PC->GetHitResultUnderCursor(ECC_Camera, false, Hit);
-		OrderUnits(Hit);
+		if (SelectedUnits.Num() > 0) {
+			OrderUnits(Hit);
+		}
+		else if (SelectedBuildings.Num() > 0) {
+			OrderBuildings(Hit);
+		}
 	}
 }
 
@@ -387,14 +474,42 @@ void ARTSPawn::OrderUnits_Implementation(FHitResult Hit) {
 	}
 }
 
+bool ARTSPawn::OrderBuildings_Validate(FHitResult Hit) {
+	return true;
+}
+
+void ARTSPawn::OrderBuildings_Implementation(FHitResult Hit) {
+	check(HasAuthority());
+	if (HasAuthority()) {
+		for (ABaseBuilding* Building : SelectedBuildings) {
+			ABaseProductionBuilding* PBuilding = Cast<ABaseProductionBuilding>(Building);
+			if (PBuilding != nullptr) {
+				PBuilding->Server_SetRallyPoint(Hit.Location);
+			}
+		}
+	}
+}
+
+//O(n^2) (EXPENSIVE AF)
 void ARTSPawn::OrderMovement(FVector Location) {
 	check(HasAuthority());
 	if (HasAuthority()) {
 		TArray<int> InvalidUnitIDs;
+
+		float LargestDist = 0;
+		float MaxAcceptance = 34.f;
+		SelectedUnits.Sort([Location](const ABaseUnit& A, const ABaseUnit& B) {
+			return (A.GetActorLocation() - Location).Size() < (B.GetActorLocation() - Location).Size();
+		});
 		for (int i = 0; i < SelectedUnits.Num(); i++) {
 			if (SelectedUnits[i]->IsValidLowLevel() && !SelectedUnits[i]->IsDead()) {
 				SelectedUnits[i]->EmptyQue();
-				SelectedUnits[i]->AddMovementAction(Location, SelectedUnits[i]->UNIT_ORDERED_PRIORITY);
+				if (bShiftPressed) {
+					SelectedUnits[i]->AddMovementAction(Location, SelectedUnits[i]->UNIT_SMART_ORDERED_PRIORITY, i * MaxAcceptance);
+				}
+				else {
+					SelectedUnits[i]->AddMovementAction(Location, SelectedUnits[i]->UNIT_ORDERED_PRIORITY, i * MaxAcceptance);
+				}
 			}
 			else {
 				InvalidUnitIDs.Add(i);

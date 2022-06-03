@@ -20,6 +20,16 @@ void ABaseBuilding::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutL
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ABaseBuilding, CurrentMesh);
+	DOREPLIFETIME(ABaseBuilding, bFinishedConstruction);
+	DOREPLIFETIME(ABaseBuilding, Team);
+}
+
+void ABaseBuilding::Selected() {
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Selected: " + GetDebugName(this));
+}
+
+void ABaseBuilding::Deselected() {
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Deelected: " + GetDebugName(this));
 }
 
 void ABaseBuilding::ChangeMesh() {
@@ -59,6 +69,7 @@ void ABaseBuilding::ConstructionIterator() {
 		CurrentMesh = FinalMesh;
 		if (HasAuthority()) {
 			ChangeMesh();
+			bFinishedConstruction = true;
 		}
 		GetWorld()->GetTimerManager().ClearTimer(ConstructionHandle);
 	}

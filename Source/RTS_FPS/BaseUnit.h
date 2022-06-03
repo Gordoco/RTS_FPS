@@ -36,9 +36,13 @@ public:
 	static const int UNIT_ORDERED_PRIORITY = 20;
 
 	static const int UNIT_SMART_ORDERED_PRIORITY = 8;
+
+	const float UNIT_SHUFFLE_DISTANCE = 5.f;
 	/*
 	***********************************************
 	*/
+
+	int FailedMovementCount = 0;
 
 protected:
 	// Called when the game starts or when spawned
@@ -46,6 +50,9 @@ protected:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Selection")
 		UPaperSpriteComponent* SelectionSprite;
+
+	void InitCheckForCombat();
+
 private:
 	static const int MAX_MOVEMENT_ACTIONS = 10;
 
@@ -68,8 +75,6 @@ private:
 
 	void Debug_ActionCastError();
 
-	void InitCheckForCombat();
-
 	FTimerHandle CheckForCombatHandle;
 
 	float CheckForCombatFactor = 0.1;
@@ -88,15 +93,24 @@ private:
 
 	void AttackActionHandler();
 
+	void AttackReset();
+
+	bool bReadyToAttack = true;
+
 	bool CheckIfInRange(FVector EnemyLocation);
 
 	FVector CalculateLocationInRange(FVector EnemyLocation);
+
+	FVector Rec_CalculateLocationInRange(FVector EnemyLocation, float Angle, float Interval, bool bLeft, float OriginalAngle);
 
 	void MakeAttack(ABaseUnit* Enemy, float inDamage);
 
 	virtual void Die();
 
+	bool Dead = false;
+
 protected:
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Brain")
 		TSubclassOf<UBaseBrain> BrainClass = UBaseBrain::StaticClass();
 	/*
@@ -105,8 +119,11 @@ protected:
 	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
 		float MaxHealth = 100.f;
 
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing = "OnRep_CheckForDeath")
 		float Health = MaxHealth;
+
+	UFUNCTION()
+	void OnRep_CheckForDeath();
 
 	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
 		float Damage = 1.f;
@@ -125,7 +142,7 @@ protected:
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Stats")
-		void Kill() { Die(); }
+		void Kill() { DealDamage(MaxHealth); }
 
 	//Keeps an up-to-date list of all enemys with an active attack action
 	TArray<ABaseUnit*> EnemyList;
@@ -134,11 +151,16 @@ public:
 
 	void EmptyQue();
 
+	bool TEST;
+
+	UFUNCTION(BlueprintPure, Category = "Stats")
+		float GetHealth() { return Health; }
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Team", Replicated, Meta = (ExposeOnSpawn = "true"))
 		int Team = 0;
 
 	UFUNCTION(BlueprintCallable, Category = "Actions")
-		void AddMovementAction(FVector Location, int prio);
+		void AddMovementAction(FVector Location, int prio, float inAcceptableRadius = 1.f);
 
 	UFUNCTION(BlueprintCallable, Category = "Actions")
 		void AddAttackAction(ABaseUnit* Enemy, int prio);
@@ -156,6 +178,10 @@ public:
 	FTimerHandle PostDeathCleanupHandle;
 
 	float PostDeathCleanupTime = 10.f;
+
+	FTimerHandle FailedMovementHandle;
+
+	float FailedMovementDelay = 1.f;
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Attacking")
 		bool bAttacking = false;

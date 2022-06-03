@@ -21,9 +21,6 @@ public:
 	void SetEnemy(ABaseUnit* inEnemy) { Enemy = inEnemy; }
 
 	ABaseUnit* GetEnemy() { return Enemy; }
-
-	int Attempts = 0;
-
 protected:
 	UPROPERTY()
 		ABaseUnit* Enemy;

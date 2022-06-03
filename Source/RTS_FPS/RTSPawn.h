@@ -3,9 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Pawn.h"
+#include "GameFramework/Character.h"
 #include "Net/UnrealNetwork.h"
 #include "Components/BoxComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "BaseBuilding.h"
 #include "BaseUnit.h"
 #include "Components/StaticMeshComponent.h"
@@ -13,7 +14,7 @@
 #include "RTSPawn.generated.h"
 
 UCLASS()
-class RTS_FPS_API ARTSPawn : public APawn
+class RTS_FPS_API ARTSPawn : public ACharacter
 {
 	GENERATED_BODY()
 
@@ -52,7 +53,7 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Input")
-		float MovementSpeed = 2000.f;
+		float MovementSpeed = 3000.f;
 
 	UFUNCTION(BlueprintCallable, Category = "Buildings")
 		bool AttemptToBuild(TSubclassOf<ABaseBuilding> BuildingClass);
@@ -65,6 +66,8 @@ private:
 		UBoxComponent* SelectionBox;
 
 	FVector StartLocation;
+
+	FVector CachedMovementDirection = FVector();
 
 	UPROPERTY(ReplicatedUsing = OnRep_SetLocation)
 		FVector PlayerLocation;
@@ -92,14 +95,28 @@ private:
 	//Currently Checking Building Placement Validity on the Client *BAD*
 	bool CheckPlacingBuilding() { return CurrentTemplate != nullptr && CurrentTemplate->bReadyToPlace; }
 
-	void DrawSelectionBox();
+	void DrawSelectionBox(FHitResult Hit);
 
 	void ReleaseLeftClick();
 
+	UFUNCTION(Server, WithValidation, Unreliable)
+		void PShift();
+
+	UFUNCTION(Server, WithValidation, Unreliable)
+		void RShift();
+
+	UPROPERTY(Replicated)
+		bool bShiftPressed = false;
+
 	void EvaluateHitUnit(ABaseUnit* HitUnit);
+
+	void EvaluateHitBuilding(ABaseBuilding* HitBuilding);
 
 	UPROPERTY(Replicated)
 		TArray<ABaseUnit*> SelectedUnits;
+
+	UPROPERTY(Replicated)
+		TArray<ABaseBuilding*> SelectedBuildings;
 
 	UFUNCTION(Server, Unreliable, WithValidation)
 		void Server_FinalizeBuildingPlacement(FTransform Transform);
@@ -111,16 +128,27 @@ private:
 	UFUNCTION(Server, WithValidation, Reliable)
 		void OrderUnits(FHitResult Hit);
 
-	UFUNCTION(Server, Unreliable, WithValidation)
+	UFUNCTION(Server, WithValidation, Reliable)
+		void OrderBuildings(FHitResult Hit);
+
+	UFUNCTION(Server, Reliable, WithValidation)
 		void SelectUnit(ABaseUnit* Unit);
 
-	UFUNCTION(Server, Unreliable, WithValidation)
+	UFUNCTION(Server, Reliable, WithValidation)
 		void DeselectUnit(ABaseUnit* Unit);
 
-	UFUNCTION(Server, Unreliable, WithValidation)
+	UFUNCTION(Server, Reliable, WithValidation)
+		void SelectBuilding(ABaseBuilding* Building);
+
+	UFUNCTION(Server, Reliable, WithValidation)
+		void DeselectBuilding(ABaseBuilding* Building);
+
+	UFUNCTION(Server, Reliable, WithValidation)
 		void DeselectAll();
 
 	void OrderMovement(FVector LocationToMove);
+
+	void Swap(int One, int Two, TArray<ABaseUnit*>* Arr);
 
 	void OrderAttack(ABaseUnit* EnemyUnit);
 

@@ -34,7 +34,7 @@ void AFPSCharacter::Server_KillPlayer_Implementation() {
 	ARTSPlayerController* PC = Cast<ARTSPlayerController>(GetController());
 	if (PC != nullptr) {
 		PC->MovePawnsToPlayerStarts(this);
-		Health = 100;
+		Health = MaxHealth;
 	}
 }
 
@@ -76,6 +76,10 @@ void AFPSCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutL
 void AFPSCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	if (HasAuthority()) {
+		Health = MaxHealth;
+		InitCheckForCombat();
+	}
 }
 
 void AFPSCharacter::Init() {

@@ -3,6 +3,7 @@
 
 #include "RTSPlayerController.h"
 #include "RTSPawn.h"
+#include "GameFramework/PlayerState.h"
 #include "Kismet/GameplayStatics.h"
 #include "Runtime/Core/Public/Misc/AssertionMacros.h"
 
@@ -15,10 +16,11 @@ void ARTSPlayerController::BeginPlay() {
 }
 
 void ARTSPlayerController::StartMatch() {
-	if (Player->IsValidLowLevel()) {
+	if (Player != nullptr && Player->IsValidLowLevel()) {
 		if (UGameplayStatics::GetCurrentLevelName(GetWorld()) != "LobbyMenu" && UGameplayStatics::GetCurrentLevelName(GetWorld()) != "MainMenu") {
 			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "SPAWNING PAWNS");
 			SpawnControlledPawn();
+			CreatePlayerHUDs();
 		}
 	}
 	else {
@@ -82,7 +84,7 @@ void ARTSPlayerController::JoinTeamAtPosition_Implementation(int inTeam, int inM
 	if (GM->RequestMatchPosition(FMatchRequest(inTeam, inMatchGameplayType), this)) {
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "SUCCESS");
 		InitPC(inMatchGameplayType, inTeam);
-		CreatePlayerWidget(inMatchGameplayType, inTeam);
+		CreatePlayerWidget(inMatchGameplayType, inTeam, PlayerState->GetPlayerName());
 		bReady = true;
 	}
 	else {

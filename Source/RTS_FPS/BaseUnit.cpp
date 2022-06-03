@@ -8,6 +8,7 @@
 #include "UnitTracker.h"
 #include "FPSCharacter.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "NavigationSystem.h"
 #include "Runtime/Core/Public/Misc/AssertionMacros.h"
 #include "Engine.h"
 
@@ -18,6 +19,9 @@ ABaseUnit::ABaseUnit()
 	PrimaryActorTick.bCanEverTick = false;
 	AIControllerClass = ABaseUnitController::StaticClass();
 
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
+	GetMesh()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
+
 	bReplicates = true;
 	SetReplicateMovement(true);
 
@@ -25,6 +29,37 @@ ABaseUnit::ABaseUnit()
 	SelectionSprite->SetupAttachment(RootComponent);
 	SelectionSprite->SetCollisionResponseToAllChannels(ECR_Ignore);
 	SelectionSprite->SetVisibility(false);
+}
+
+// Called when the game starts or when spawned
+void ABaseUnit::BeginPlay()
+{
+	//Register Units and Players
+	if (HasAuthority()) {
+		UUnitTracker::RegisterUnit(this, Team);
+	}
+	Super::BeginPlay();
+	if (Cast<AFPSCharacter>(this) == nullptr) {
+		SpawnDefaultController();
+		/*if (HasAuthority()) {
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Server: I AM A UNIT");
+		}
+		else {
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Client: I AM A UNIT");
+		}*/
+
+		//Server Side Setup
+		if (HasAuthority()) {
+			Health = MaxHealth;
+			ActionQue = NewObject<UAIQueue>();
+			ActionQue->SetOwner(this);
+			Brain = NewObject<UBaseBrain>(this, BrainClass);
+			Brain->Team = Team;
+			Brain->SetOwner(this);
+			RecieveAction();
+			CheckForCombatIterator();
+		}
+	}
 }
 
 void ABaseUnit::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const {
@@ -51,17 +86,27 @@ void ABaseUnit::Deselected() {
 }
 
 void ABaseUnit::EmptyQue() {
-	if (ActionQue->IsValidLowLevel()) {
-		GetWorld()->GetTimerManager().ClearTimer(CheckForCombatHandle);
-		GetWorld()->GetTimerManager().ClearTimer(AttackSpeedHandle);
-		ActionQue->Empty();
+	check(HasAuthority());
+	if (HasAuthority()) {
+		if (ActionQue != nullptr) {
+			CurrentAction = FAction();
+			bAttacking = false;
+			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "EMPTYING UNIT QUE: ActionQue IS VALID");
+			AAIController* AIController = Cast<AAIController>(GetController());
+			if (AIController != nullptr) {
+				AIController->StopMovement();
+			}
+			GetWorld()->GetTimerManager().ClearTimer(CheckForCombatHandle);
+			GetWorld()->GetTimerManager().ClearTimer(AttackSpeedHandle);
+			ActionQue->Empty();
+		}
 	}
 }
 
 void ABaseUnit::AddAction(FAction Action) {
 	check(Action.Action_Type != "");
 	check(HasAuthority());
-	if (Action.Action_Type != "" && HasAuthority()) {
+	if (Action.Action_Type != "" && HasAuthority() && ActionQue != nullptr) {
 		ActionQue->Insert(Action);
 	}
 }
@@ -81,7 +126,7 @@ void ABaseUnit::SearchForEnemies(int prio) {
 
 void ABaseUnit::RecieveAction() {
 	check(HasAuthority());
-	if (HasAuthority()) {
+	if (HasAuthority() && !IsDead()) {
 		if (ActionQue != nullptr && Brain != nullptr) {
 			if (!ActionQue->IsEmpty()) {
 				/*
@@ -111,21 +156,36 @@ void ABaseUnit::RecieveAction() {
 	}
 }
 
-void ABaseUnit::AddMovementAction(FVector Location, int prio) {
+void ABaseUnit::AddMovementAction(FVector Location, int prio, float inAcceptableRadius) {
 	check(HasAuthority());
-	if (HasAuthority()) {
+	if (HasAuthority() && !IsDead()) {
 		UMovementActionData* Data = NewObject<UMovementActionData>(this);
 		check(Data->IsValidLowLevel());
 		if (Data->IsValidLowLevel()) {
-			Data->SetLocation(Location);
-			AddAction(FAction(Data, prio));
+			//VERIFY LOCATION
+			UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
+			const FNavAgentProperties& AgentProps = GetNavAgentPropertiesRef();
+			FNavLocation ProjectedLocation;
+
+			if (FAISystem::IsValidLocation(Location) == true && NavSys->ProjectPointToNavigation(Location, ProjectedLocation, INVALID_NAVEXTENT, &AgentProps)) {
+				Data->SetLocation(Location);
+				Data->AcceptableRadius = inAcceptableRadius;
+				AddAction(FAction(Data, prio));
+			}
+			else {
+				FNavLocation outLoc;
+				NavSys->GetRandomReachablePointInRadius(GetActorLocation(), 50.f, outLoc);
+				Data->SetLocation(outLoc.Location);
+				Data->AcceptableRadius = inAcceptableRadius;
+				AddAction(FAction(Data, prio));
+			}
 		}
 	}
 }
 
 void ABaseUnit::AddAttackAction(ABaseUnit* Enemy, int prio) {
 	check(HasAuthority());
-	if (HasAuthority()) {
+	if (HasAuthority() && !IsDead()) {
 		UAttackActionData* Data = NewObject<UAttackActionData>(this);
 		check(Data->IsValidLowLevel());
 		if (Data->IsValidLowLevel()) {
@@ -137,7 +197,8 @@ void ABaseUnit::AddAttackAction(ABaseUnit* Enemy, int prio) {
 
 void ABaseUnit::InitCheckForCombat() {
 	check(HasAuthority());
-	if (HasAuthority()) {
+	if (HasAuthority() && !IsDead()) {
+		CheckForCombatIterator();
 		GetWorld()->GetTimerManager().SetTimer(CheckForCombatHandle, this, &ABaseUnit::CheckForCombatIterator, CheckForCombatFactor, true);
 	}
 }
@@ -178,7 +239,11 @@ void ABaseUnit::RunAction() {
 			}
 			else {
 				Debug_UnknownCommand(CurrentAction.Action_Type);
+				FinishAction();
 			}
+		}
+		else {
+			FinishAction();
 		}
 	}
 }
@@ -190,11 +255,15 @@ void ABaseUnit::MovementActionHandler() {
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Attempted Movement");
 		AAIController* AIController = Cast<AAIController>(GetController());
 		if (AIController->IsValidLowLevel()) {
-			AIController->MoveToLocation(Data->GetLocation());
+			AIController->MoveToLocation(Data->GetLocation(), Data->AcceptableRadius, false, true, true, true);
+		}
+		else {
+			FinishAction();
 		}
 	}
 	else {
 		Debug_ActionCastError();
+		FinishAction();
 	}
 }
 
@@ -210,14 +279,16 @@ void ABaseUnit::AttackActionHandler() {
 			//GEngine->AddOnScreenDebugMessage(12, 5.f, FColor::Green, "SHOULD ATTACK/MOVE AND ATTACK");
 			if (CheckIfInRange(Enemy->GetActorLocation())) {
 				//GEngine->AddOnScreenDebugMessage(13, 5.f, FColor::Green, "IN RANGE (ATTACKING)");
-				MakeAttack(Enemy, Damage);
+				if (bReadyToAttack) {
+					MakeAttack(Enemy, Damage);
+					bReadyToAttack = false;
+					GetWorld()->GetTimerManager().SetTimer(AttackSpeedHandle, this, &ABaseUnit::AttackReset, AttackSpeed, false);
+				}
 			}
 			else {
 				//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "OUT OF RANGE (MOVING TO: " + CalculateLocationInRange(Enemy->GetActorLocation()).ToString() + ")");
-				CheckForCombatIterator();
-				AddMovementAction(CalculateLocationInRange(Enemy->GetActorLocation()), CurrentAction.Priority);
-				RemoveEnemyFromList(Enemy);
-				FinishAction();
+				FVector TargetLocation = CalculateLocationInRange(Enemy->GetActorLocation());
+				AddMovementAction(TargetLocation, CurrentAction.Priority + 1);
 			}
 		}
 		else {
@@ -227,7 +298,13 @@ void ABaseUnit::AttackActionHandler() {
 	}
 	else {
 		Debug_ActionCastError();
+		FinishAction();
 	}
+}
+
+void ABaseUnit::AttackReset() {
+	bReadyToAttack = true;
+	AttackActionHandler();
 }
 
 bool ABaseUnit::RemoveEnemyFromList(ABaseUnit* Enemy) {
@@ -252,14 +329,79 @@ FVector ABaseUnit::CalculateLocationInRange(FVector EnemyLocation) {
 	FVector ReturnVector = GetActorLocation() + (Dir * ((Dist - AttackRange) * 1.1));
 	FHitResult Hit;
 	GetWorld()->LineTraceSingleByChannel(Hit, FVector(ReturnVector.X, ReturnVector.Y, 10000), FVector(ReturnVector.X, ReturnVector.Y, -10000), ECC_Visibility);
-	return FVector(ReturnVector.X, ReturnVector.Y, Hit.Location.Z);
+	FVector Final = FVector(ReturnVector.X, ReturnVector.Y, Hit.Location.Z);
+	FVector EndVector;
+	//NAV SYSTEM VARs
+	UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
+	const FNavAgentProperties& AgentProps = GetNavAgentPropertiesRef();
+	FNavLocation ProjectedLocation;
+
+	//Return Straight Line Result if Valid
+	if (FAISystem::IsValidLocation(Final) == true && NavSys->ProjectPointToNavigation(Final, ProjectedLocation, INVALID_NAVEXTENT, &AgentProps) && !Cast<ABaseUnit>(Hit.GetActor())) {
+		EndVector = FVector(Final);
+	}
+	else {
+		//Recursively find points left and right at an interval along the circumfrence of the "In Range Circle" and return closest valid result
+		float Angle = UKismetMathLibrary::Atan2(Dir.Y, Dir.X) + UKismetMathLibrary::GetPI()/2;
+		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::SanitizeFloat(Team) + ": " + ReturnVector.ToString());
+		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::SanitizeFloat(Team) + ": " + FString::SanitizeFloat(FMath::RadiansToDegrees(Angle)));
+		FVector FirstLeftPoint = Rec_CalculateLocationInRange(EnemyLocation, Angle, 0.1f, true, Angle);
+		FVector FirstRightPoint = Rec_CalculateLocationInRange(EnemyLocation, Angle, 0.1f, false, Angle);
+		if (FirstLeftPoint == FVector()) {
+			EndVector = FirstRightPoint;
+		}
+		else if (FirstRightPoint == FVector()) {
+			EndVector = FirstLeftPoint;
+		}
+		else {
+			float Dist1 = FVector::Dist(GetActorLocation(), FirstLeftPoint);
+			float Dist2 = FVector::Dist(GetActorLocation(), FirstRightPoint);
+			if (Dist1 < Dist2) {
+				EndVector = FirstLeftPoint;
+			}
+			else {
+				EndVector = FirstRightPoint;
+			}
+		}
+	}
+	return EndVector;
+}
+
+FVector ABaseUnit::Rec_CalculateLocationInRange(FVector EnemyLocation, float Angle, float Interval, bool bLeft, float OriginalAngle) {
+	FVector ReturnVector;
+	float NewAngle;
+	if (bLeft) {
+		NewAngle = Angle + Interval;
+	}
+	else {
+		NewAngle = Angle - Interval;
+	}
+	ReturnVector = FVector(EnemyLocation.X + (AttackRange * FMath::Sin(NewAngle)), EnemyLocation.Y + (AttackRange * FMath::Cos(NewAngle)), EnemyLocation.Z);
+	FHitResult Hit;
+	GetWorld()->LineTraceSingleByChannel(Hit, FVector(ReturnVector.X, ReturnVector.Y, 10000), FVector(ReturnVector.X, ReturnVector.Y, -10000), ECC_Visibility);
+	FVector Final = FVector(ReturnVector.X, ReturnVector.Y, Hit.Location.Z);
+	//NAV SYSTEM VARs
+	UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
+	const FNavAgentProperties& AgentProps = GetNavAgentPropertiesRef();
+	FNavLocation ProjectedLocation;
+	//Return Straight Line Result if Valid
+	if (FAISystem::IsValidLocation(Final) == true && NavSys->ProjectPointToNavigation(Final, ProjectedLocation, INVALID_NAVEXTENT, &AgentProps) && !Cast<ABaseUnit>(Hit.GetActor())) {
+		return Final;
+	}
+	else if (FMath::Abs(NewAngle - OriginalAngle) < Interval) {
+		//FAILED
+		return FVector();
+	}
+	else {
+		//Check Next Angle
+		return Rec_CalculateLocationInRange(EnemyLocation, NewAngle, Interval, bLeft, OriginalAngle);
+	}
 }
 
 //NEEDS CHANGING TO PROJECTILE/MELEE COMBAT AND TO MAKE INTERACTIVE WITH PLAYER
 void ABaseUnit::MakeAttack(ABaseUnit* Enemy, float inDamage) {
-	SetActorRotation(UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), Enemy->GetActorLocation()));
+	SetActorRotation(FRotator(0.f, FRotator(UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), Enemy->GetActorLocation())).Yaw, 0.f));
 	Enemy->DealDamage(inDamage);
-	GetWorld()->GetTimerManager().SetTimer(AttackSpeedHandle, this, &ABaseUnit::AttackActionHandler, AttackSpeed, false);
 }
 
 void ABaseUnit::DealDamage(float inDamage) {
@@ -272,30 +414,39 @@ void ABaseUnit::DealDamage(float inDamage) {
 	}
 }
 
+void ABaseUnit::OnRep_CheckForDeath() {
+	if (Health == 0) {
+		Die();
+	}
+}
+
 //Add OnRep_Health { Health == 0 -> Die }
 void ABaseUnit::Die() {
 	/*
 	Add Animations and other various aesthetic aspects
 	*/
-	if (HasAuthority()) {
+	SelectionSprite->SetVisibility(false);
+	if (HasAuthority() && !Dead) {
+		Dead = true;
 		UUnitTracker::DeregisterUnit(this, Team);
-		SelectionSprite->SetVisibility(false);
 		GetCapsuleComponent()->SetCollisionResponseToAllChannels(ECR_Ignore);
+		GetWorld()->GetTimerManager().ClearTimer(FailedMovementHandle);
 		GetWorld()->GetTimerManager().ClearTimer(CheckForCombatHandle);
 		GetWorld()->GetTimerManager().ClearTimer(AttackSpeedHandle);
-		if (ActionQue->IsValidLowLevel()) {
-			ActionQue->Invalidate();
-			ActionQue->ConditionalBeginDestroy();
-			ActionQue = nullptr;
-		}
-		if (Brain->IsValidLowLevel()) {
-			Brain->ConditionalBeginDestroy();
-			Brain = nullptr;
-		}
+		bAttacking = false;
 		AAIController* AIController = Cast<AAIController>(GetController());
 		if (AIController != nullptr) {
 			AIController->StopMovement();
 			AIController->Destroy();
+		}
+		if (ActionQue != nullptr) {
+			ActionQue->Invalidate();
+			ActionQue->ConditionalBeginDestroy();
+			ActionQue = nullptr;
+		}
+		if (Brain != nullptr) {
+			Brain->ConditionalBeginDestroy();
+			Brain = nullptr;
 		}
 		Die_Visuals();
 		GetWorld()->GetTimerManager().SetTimer(PostDeathCleanupHandle, this, &ABaseUnit::PostDeathCleanup, PostDeathCleanupTime, false);
@@ -308,6 +459,7 @@ void ABaseUnit::Die_Visuals_Implementation() {
 
 void ABaseUnit::FinishAction() {
 	check(HasAuthority());
+	GetWorld()->GetTimerManager().ClearTimer(FailedMovementHandle);
 	CurrentAction = FAction();
 	bAttacking = false;
 	RecieveAction();
@@ -317,10 +469,18 @@ void ABaseUnit::FinishMovement(const FPathFollowingResult& Result) {
 	if (HasAuthority()) {
 		GetWorld()->GetTimerManager().ClearTimer(CheckForCombatHandle);
 		if (!Result.IsSuccess()) {
-			//ATTEMPTING TO AVOID A STACK OVERFLOW WITH MASS UNITS. NEED A BETTER LONG TERM SOLUTION
-
+			if (FailedMovementCount > MAX_MOVEMENT_ACTIONS) {
+				GetWorld()->GetTimerManager().SetTimer(FailedMovementHandle, this, &ABaseUnit::FinishAction, FailedMovementDelay, false);
+			}
+			else {
+				FailedMovementCount++;
+				FinishAction();
+			}
 		}
-		FinishAction();
+		else {
+			FailedMovementCount = 0;
+			FinishAction();
+		}
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::SanitizeFloat(Result.Code));
 	}
 }
@@ -331,36 +491,6 @@ bool ABaseUnit::DoneCurrentAction() {
 		return true;
 	}
 	return false;
-}
-
-// Called when the game starts or when spawned
-void ABaseUnit::BeginPlay()
-{
-	//Register Units and Players
-	if (HasAuthority()) {
-		UUnitTracker::RegisterUnit(this, Team);
-	}
-	Super::BeginPlay();
-	if (Cast<AFPSCharacter>(this) == nullptr) {
-		SpawnDefaultController();
-		/*if (HasAuthority()) {
-			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Server: I AM A UNIT");
-		}
-		else {
-			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Client: I AM A UNIT");
-		}*/
-
-		//Server Side Setup
-		if (HasAuthority()) {
-			ActionQue = NewObject<UAIQueue>();
-			ActionQue->SetOwner(this);
-			Brain = NewObject<UBaseBrain>(this, BrainClass);
-			Brain->Team = Team;
-			Brain->SetOwner(this);
-			RecieveAction();
-			CheckForCombatIterator();
-		}
-	}
 }
 
 void ABaseUnit::CheckActions() {

@@ -10,7 +10,7 @@
 UAIQueue::UAIQueue() {}
 
 void UAIQueue::Invalidate() {
-	Queue.Empty();
+	Empty();
 	Owner = nullptr;
 }
 
@@ -61,7 +61,8 @@ void UAIQueue::Insert_NoCheck(FAction Action) {
 			x = (pos - 1) / 2;
 		}
 		Parent = Queue[x];
-		if (Parent.Priority < Action.Priority) {
+		//ADDING = MAKES WORST CASE RUNTIME MORE COMMON
+		if (Parent.Priority </*=*/ Action.Priority) {
 			Queue[x] = Action;
 			Queue[pos] = Parent;
 			pos = x;

@@ -42,6 +42,12 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Components")
 		float BuildIncrement = 1.f;
 
+	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
+		int Team = 0;
+
+	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
+		bool bFinishedConstruction = false;
+
 private:
 	UPROPERTY(ReplicatedUsing = ChangeMesh)
 		UStaticMesh* CurrentMesh;
@@ -62,11 +68,23 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	virtual void Selected();
+
+	virtual void Deselected();
+
+	UFUNCTION(BlueprintPure, Category = "Stats")
+		int GetTeam() { return Team; }
+
+	void SetTeam(int inTeam) { Team = inTeam; }
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
 		float BuildingCost = 0.f;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Template")
 		TSubclassOf<ATemplateBuilding> TemplateClass;
+
+	UFUNCTION(BlueprintPure, Category = "Construction")
+		bool IsConstructed() { return bFinishedConstruction; }
 
 	void BeginConstruction();
 };
