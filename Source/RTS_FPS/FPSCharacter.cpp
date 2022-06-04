@@ -43,7 +43,7 @@ FHitResult AFPSCharacter::GetShotHit() {
 	check(GetWorld() != nullptr);
 	if (GetWorld() != nullptr) {
 		FVector Location = FiringLocation->GetComponentLocation();
-		GetWorld()->LineTraceSingleByChannel(Hit, Location, Location + (FPSCamera->GetForwardVector() * AttackRange), ECC_Pawn);
+		GetWorld()->LineTraceSingleByChannel(Hit, Location, Location + (FPSCamera->GetForwardVector() * AttackRange), ECC_Camera);
 	}
 	return Hit;
 }

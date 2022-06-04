@@ -15,7 +15,7 @@ TArray<ABaseUnit*> UUnitTracker::GetUnitsInRange(int Team, float inRange, FVecto
 		for (int i = 0; i < UUnitTracker::Teams.Num(); i++) {
 			if (i != Team) {
 				for (ABaseUnit* Unit : Teams[i].Units) {
-					if (Unit->IsValidLowLevel()) {
+					if (Unit != nullptr && Unit->IsValidLowLevel()) {
 						float dist = FVector::Dist(Unit->GetActorLocation(), Location);
 						if (dist < lowest) {
 							returnArray.Push(Unit);

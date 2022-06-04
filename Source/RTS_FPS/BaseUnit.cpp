@@ -138,6 +138,8 @@ void ABaseUnit::RecieveAction() {
 						/*
 						Check and re-shuffle current action with highest priority
 						*/
+						bAttacking = false;
+						GetWorld()->GetTimerManager().ClearTimer(FailedMovementHandle);
 						FAction temp = ActionQue->DeleteMax();
 						ActionQue->Insert_NoCheck(CurrentAction);
 						CurrentAction = temp;
@@ -288,6 +290,9 @@ void ABaseUnit::AttackActionHandler() {
 			else {
 				//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "OUT OF RANGE (MOVING TO: " + CalculateLocationInRange(Enemy->GetActorLocation()).ToString() + ")");
 				FVector TargetLocation = CalculateLocationInRange(Enemy->GetActorLocation());
+				if (TargetLocation != NULL_VECTOR) {
+					CachedAttackAction = CurrentAction;
+				}
 				AddMovementAction(TargetLocation, CurrentAction.Priority + 1);
 			}
 		}
@@ -328,8 +333,11 @@ FVector ABaseUnit::CalculateLocationInRange(FVector EnemyLocation) {
 	float Dist = FMath::Abs(FVector::Dist(EnemyLocation, GetActorLocation()));
 	FVector ReturnVector = GetActorLocation() + (Dir * ((Dist - AttackRange) * 1.1));
 	FHitResult Hit;
-	GetWorld()->LineTraceSingleByChannel(Hit, FVector(ReturnVector.X, ReturnVector.Y, 10000), FVector(ReturnVector.X, ReturnVector.Y, -10000), ECC_Visibility);
+	GetWorld()->LineTraceSingleByChannel(Hit, FVector(ReturnVector.X, ReturnVector.Y, 10000), FVector(ReturnVector.X, ReturnVector.Y, -10000), ECC_Camera);
 	FVector Final = FVector(ReturnVector.X, ReturnVector.Y, Hit.Location.Z);
+	if (FVector::Dist(Final, EnemyLocation) > AttackRange || !Hit.bBlockingHit) {
+		return NULL_VECTOR;
+	}
 	FVector EndVector;
 	//NAV SYSTEM VARs
 	UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
@@ -338,19 +346,19 @@ FVector ABaseUnit::CalculateLocationInRange(FVector EnemyLocation) {
 
 	//Return Straight Line Result if Valid
 	if (FAISystem::IsValidLocation(Final) == true && NavSys->ProjectPointToNavigation(Final, ProjectedLocation, INVALID_NAVEXTENT, &AgentProps) && !Cast<ABaseUnit>(Hit.GetActor())) {
-		EndVector = FVector(Final);
+		EndVector = Final;
 	}
 	else {
 		//Recursively find points left and right at an interval along the circumfrence of the "In Range Circle" and return closest valid result
 		float Angle = UKismetMathLibrary::Atan2(Dir.Y, Dir.X) + UKismetMathLibrary::GetPI()/2;
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::SanitizeFloat(Team) + ": " + ReturnVector.ToString());
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::SanitizeFloat(Team) + ": " + FString::SanitizeFloat(FMath::RadiansToDegrees(Angle)));
-		FVector FirstLeftPoint = Rec_CalculateLocationInRange(EnemyLocation, Angle, 0.1f, true, Angle);
-		FVector FirstRightPoint = Rec_CalculateLocationInRange(EnemyLocation, Angle, 0.1f, false, Angle);
-		if (FirstLeftPoint == FVector()) {
+		FVector FirstLeftPoint = Rec_CalculateLocationInRange(EnemyLocation, Angle, 0.5f, true, Angle);
+		FVector FirstRightPoint = Rec_CalculateLocationInRange(EnemyLocation, Angle, 0.5f, false, Angle);
+		if (FirstLeftPoint == NULL_VECTOR) {
 			EndVector = FirstRightPoint;
 		}
-		else if (FirstRightPoint == FVector()) {
+		else if (FirstRightPoint == NULL_VECTOR) {
 			EndVector = FirstLeftPoint;
 		}
 		else {
@@ -376,9 +384,9 @@ FVector ABaseUnit::Rec_CalculateLocationInRange(FVector EnemyLocation, float Ang
 	else {
 		NewAngle = Angle - Interval;
 	}
-	ReturnVector = FVector(EnemyLocation.X + (AttackRange * FMath::Sin(NewAngle)), EnemyLocation.Y + (AttackRange * FMath::Cos(NewAngle)), EnemyLocation.Z);
+	ReturnVector = FVector(EnemyLocation.X + ((AttackRange * 0.9) * FMath::Sin(NewAngle)), EnemyLocation.Y + (AttackRange * FMath::Cos(NewAngle)), EnemyLocation.Z);
 	FHitResult Hit;
-	GetWorld()->LineTraceSingleByChannel(Hit, FVector(ReturnVector.X, ReturnVector.Y, 10000), FVector(ReturnVector.X, ReturnVector.Y, -10000), ECC_Visibility);
+	GetWorld()->LineTraceSingleByChannel(Hit, FVector(ReturnVector.X, ReturnVector.Y, 10000), FVector(ReturnVector.X, ReturnVector.Y, -10000), ECC_Camera);
 	FVector Final = FVector(ReturnVector.X, ReturnVector.Y, Hit.Location.Z);
 	//NAV SYSTEM VARs
 	UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
@@ -390,7 +398,7 @@ FVector ABaseUnit::Rec_CalculateLocationInRange(FVector EnemyLocation, float Ang
 	}
 	else if (FMath::Abs(NewAngle - OriginalAngle) < Interval) {
 		//FAILED
-		return FVector();
+		return NULL_VECTOR;
 	}
 	else {
 		//Check Next Angle
@@ -458,10 +466,11 @@ void ABaseUnit::Die_Visuals_Implementation() {
 }
 
 void ABaseUnit::FinishAction() {
-	check(HasAuthority());
+	check(HasAuthority())
+	bAttacking = false;
 	GetWorld()->GetTimerManager().ClearTimer(FailedMovementHandle);
 	CurrentAction = FAction();
-	bAttacking = false;
+	CachedAttackAction = FAction();
 	RecieveAction();
 }
 
@@ -474,14 +483,28 @@ void ABaseUnit::FinishMovement(const FPathFollowingResult& Result) {
 			}
 			else {
 				FailedMovementCount++;
-				FinishAction();
+				PostMovementAction();
 			}
 		}
 		else {
 			FailedMovementCount = 0;
-			FinishAction();
+			PostMovementAction();
 		}
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::SanitizeFloat(Result.Code));
+	}
+}
+
+void ABaseUnit::PostMovementAction() {
+	if (CachedAttackAction.Action_Type == "ATTACK") {
+		check(HasAuthority())
+		bAttacking = false;
+		GetWorld()->GetTimerManager().ClearTimer(FailedMovementHandle);
+		CurrentAction = CachedAttackAction;
+		CachedAttackAction = FAction();
+		RunAction();
+	}
+	else {
+		FinishAction();
 	}
 }
 

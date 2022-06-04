@@ -37,6 +37,8 @@ public:
 
 	static const int UNIT_SMART_ORDERED_PRIORITY = 8;
 
+	const FVector NULL_VECTOR = FVector(-9999, -9999, -9999);
+
 	const float UNIT_SHUFFLE_DISTANCE = 5.f;
 	/*
 	***********************************************
@@ -56,6 +58,8 @@ protected:
 private:
 	static const int MAX_MOVEMENT_ACTIONS = 10;
 
+	FAction CachedAttackAction = FAction();
+
 	UPROPERTY()
 		UAIQueue* ActionQue;
 
@@ -68,6 +72,8 @@ private:
 	void RecieveAction();
 
 	void FinishAction();
+
+	void PostMovementAction();
 
 	void RunAction();
 

@@ -34,6 +34,7 @@ void ARTSPawn::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifeti
 	DOREPLIFETIME(ARTSPawn, SelectedUnits);
 	DOREPLIFETIME(ARTSPawn, SelectedBuildings);
 	DOREPLIFETIME(ARTSPawn, bShiftPressed);
+	DOREPLIFETIME(ARTSPawn, Team);
 }
 
 // Called when the game starts or when spawned

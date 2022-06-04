@@ -43,7 +43,7 @@ protected:
 		void CreateHUD();
 
 public:	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Team")
+	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Team")
 		int Team = 0;
 
 	// Called every frame

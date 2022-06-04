@@ -41,7 +41,7 @@ void ARTS_FPSGameModeBase::SwapPlayerControllers(APlayerController* OldPC, APlay
 
 void ARTS_FPSGameModeBase::CheckForPlayersLoaded() {
 	TArray<AActor*> PlayerControllerActors;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerController::StaticClass(), PlayerControllerActors);
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ARTSPlayerController::StaticClass(), PlayerControllerActors);
 	bool bStart = true;
 	for (AActor* ActorPC : PlayerControllerActors) {
 		ARTSPlayerController* PC = Cast<ARTSPlayerController>(ActorPC);
@@ -66,7 +66,7 @@ void ARTS_FPSGameModeBase::CheckForPlayersLoaded() {
 void ARTS_FPSGameModeBase::StartGame() {
 	bStarted = true;
 	TArray<AActor*> PlayerControllerActors;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerController::StaticClass(), PlayerControllerActors);
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ARTSPlayerController::StaticClass(), PlayerControllerActors);
 	for (AActor* ActorPC : PlayerControllerActors) {
 		ARTSPlayerController* PC = Cast<ARTSPlayerController>(ActorPC);
 		if (PC != nullptr) {
