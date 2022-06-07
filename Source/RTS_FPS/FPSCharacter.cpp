@@ -4,6 +4,7 @@
 #include "FPSCharacter.h"
 #include "Kismet/GameplayStatics.h"
 #include "RTSPlayerController.h"
+#include "UnitTracker.h"
 #include "GameFramework/GameModeBase.h"
 
 // Sets default values
@@ -20,10 +21,21 @@ AFPSCharacter::AFPSCharacter()
 	FPSCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("CAM"));
 	FPSCamera->SetupAttachment(RootComponent);
 
+	ADSFPSCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("ADS_CAM"));
+	ADSFPSCamera->SetupAttachment(RootComponent);
+	ADSFPSCamera->SetActive(false);
+
+	ActiveCam = FPSCamera;
+
+}
+
+void AFPSCharacter::SpawnOrderMarker_Implementation(FVector Location, ABaseUnit* Enemy) {
+	CreateOrderWidget(Location, Enemy);
 }
 
 void AFPSCharacter::Die() {
 	Server_KillPlayer();
+	BP_Die_Visuals();
 }
 
 bool AFPSCharacter::Server_KillPlayer_Validate() {
@@ -43,7 +55,7 @@ FHitResult AFPSCharacter::GetShotHit() {
 	check(GetWorld() != nullptr);
 	if (GetWorld() != nullptr) {
 		FVector Location = FiringLocation->GetComponentLocation();
-		GetWorld()->LineTraceSingleByChannel(Hit, Location, Location + (FPSCamera->GetForwardVector() * AttackRange), ECC_Camera);
+		GetWorld()->LineTraceSingleByChannel(Hit, Location, Location + (ActiveCam->GetForwardVector() * AttackRange), ECC_Camera);
 	}
 	return Hit;
 }
@@ -86,6 +98,30 @@ void AFPSCharacter::Init() {
 
 }
 
+void AFPSCharacter::InitCheckForCombat() {
+	check(HasAuthority());
+	if (HasAuthority() && !IsDead()) {
+		CheckForCombatIterator();
+		GetWorld()->GetTimerManager().SetTimer(CheckForCombatHandle, this, &AFPSCharacter::CheckForCombatIterator, CheckForCombatFactor, true);
+	}
+}
+
+void AFPSCharacter::CheckForCombatIterator() {
+	check(HasAuthority());
+	if (HasAuthority() && !IsDead()) {
+		TArray<ABaseUnit*> PotentialEnemys = UUnitTracker::GetUnitsInRange(Team, VisionRange, GetActorLocation());
+		for (ABaseUnit* PotentialEnemy : PotentialEnemys) {
+			float Dist = FVector::Dist(PotentialEnemy->GetActorLocation(), GetActorLocation());
+			if (Dist <= PotentialEnemy->GetVisionRange()) {
+				if (!PotentialEnemy->EnemyList.Contains(this)) {
+					PotentialEnemy->AddAttackAction(this, UNIT_RESPONSE_PRIORITY);
+					PotentialEnemy->EnemyList.Add(this);
+				}
+			}
+		}
+	}
+}
+
 // Called every frame
 void AFPSCharacter::Tick(float DeltaTime)
 {
@@ -97,6 +133,18 @@ void AFPSCharacter::Tick(float DeltaTime)
 void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
+	PlayerInputComponent->BindAction("SecondaryAction", IE_Pressed, this, &AFPSCharacter::ADS);
+	PlayerInputComponent->BindAction("SecondaryAction", IE_Released, this, &AFPSCharacter::StopADS);
 }
 
+void AFPSCharacter::ADS() {
+	FPSCamera->SetActive(false);
+	ADSFPSCamera->SetActive(true);
+	ActiveCam = ADSFPSCamera;
+}
+
+void AFPSCharacter::StopADS() {
+	ADSFPSCamera->SetActive(false);
+	FPSCamera->SetActive(true);
+	ActiveCam = FPSCamera;
+}

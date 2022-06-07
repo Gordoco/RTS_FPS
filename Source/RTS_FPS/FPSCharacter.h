@@ -31,9 +31,15 @@ public:
 
 	void Init();
 
+	UFUNCTION(Client, Unreliable)
+		void SpawnOrderMarker(FVector Location, ABaseUnit* Enemy = nullptr);
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "UI")
+		void CreateOrderWidget(FVector Location, ABaseUnit* Enemy);
 
 	UFUNCTION(BlueprintPure, Category = "Firing")
 		FHitResult GetShotHit();
@@ -50,10 +56,27 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Components")
 		UCameraComponent* FPSCamera;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Components")
+		UCameraComponent* ADSFPSCamera;
+
 	virtual void Die();
+
+	virtual void InitCheckForCombat() override;
+
+	virtual void CheckForCombatIterator() override;
 
 	UFUNCTION(Server, WithValidation, Reliable)
 		void Server_KillPlayer();
+
+private:
+
+	UCameraComponent* ActiveCam;
+
+	UFUNCTION()
+		void ADS();
+
+	UFUNCTION()
+		void StopADS();
 
 public:	
 	// Called every frame

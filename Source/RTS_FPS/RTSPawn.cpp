@@ -4,6 +4,7 @@
 #include "RTSPawn.h"
 #include "Engine.h"
 #include "BaseProductionBuilding.h"
+#include "FPSCharacter.h"
 #include "Runtime/Core/Public/Misc/AssertionMacros.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -297,20 +298,18 @@ void ARTSPawn::PlayerClick()
 			PC->GetHitResultUnderCursor(ECC_Camera, false, Hit);
 			ABaseUnit* HitUnit = Cast<ABaseUnit>(Hit.GetActor());
 			ABaseBuilding* HitBuilding = Cast<ABaseBuilding>(Hit.GetActor());
+			for (int i = 0; i < SelectedUnits.Num(); i++) {
+				SelectedUnits[i]->Deselected();
+			}
+			for (int i = 0; i < SelectedBuildings.Num(); i++) {
+				SelectedBuildings[i]->Deselected();
+			}
+			DeselectAll();
 			if (HitUnit != nullptr) {
 				EvaluateHitUnit(HitUnit);
 			}
 			else if (HitBuilding != nullptr){
 				EvaluateHitBuilding(HitBuilding);
-			}
-			else {
-				for (int i = 0; i < SelectedUnits.Num(); i++) {
-					SelectedUnits[i]->Deselected();
-				}
-				for (int i = 0; i < SelectedBuildings.Num(); i++) {
-					SelectedBuildings[i]->Deselected();
-				}
-				DeselectAll();
 			}
 			DrawSelectionBox(Hit);
 		}
@@ -495,7 +494,6 @@ void ARTSPawn::OrderBuildings_Implementation(FHitResult Hit) {
 void ARTSPawn::OrderMovement(FVector Location) {
 	check(HasAuthority());
 	if (HasAuthority()) {
-		TArray<int> InvalidUnitIDs;
 
 		float LargestDist = 0;
 		float MaxAcceptance = 34.f;
@@ -504,20 +502,20 @@ void ARTSPawn::OrderMovement(FVector Location) {
 		});
 		for (int i = 0; i < SelectedUnits.Num(); i++) {
 			if (SelectedUnits[i]->IsValidLowLevel() && !SelectedUnits[i]->IsDead()) {
-				SelectedUnits[i]->EmptyQue();
-				if (bShiftPressed) {
-					SelectedUnits[i]->AddMovementAction(Location, SelectedUnits[i]->UNIT_SMART_ORDERED_PRIORITY, i * MaxAcceptance);
+				AFPSCharacter* Player = Cast<AFPSCharacter>(SelectedUnits[i]);
+				if (Player == nullptr) {
+					SelectedUnits[i]->EmptyQue();
+					if (bShiftPressed) {
+						SelectedUnits[i]->AddMovementAction(Location, SelectedUnits[i]->UNIT_SMART_ORDERED_PRIORITY, i * MaxAcceptance);
+					}
+					else {
+						SelectedUnits[i]->AddMovementAction(Location, SelectedUnits[i]->UNIT_ORDERED_PRIORITY, i * MaxAcceptance);
+					}
 				}
 				else {
-					SelectedUnits[i]->AddMovementAction(Location, SelectedUnits[i]->UNIT_ORDERED_PRIORITY, i * MaxAcceptance);
+					Player->SpawnOrderMarker(Location + Player->GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
 				}
 			}
-			else {
-				InvalidUnitIDs.Add(i);
-			}
-		}
-		for (int j = 0; j < InvalidUnitIDs.Num(); j++) {
-			SelectedUnits.RemoveAt(j);
 		}
 	}
 }
@@ -525,18 +523,19 @@ void ARTSPawn::OrderMovement(FVector Location) {
 void ARTSPawn::OrderAttack(ABaseUnit* EnemyUnit) {
 	check(HasAuthority());
 	if (HasAuthority()) {
-		TArray<int> InvalidUnitIDs;
-		for (int i = 0; i < SelectedUnits.Num(); i++) {
-			if (SelectedUnits[i]->IsValidLowLevel() && !SelectedUnits[i]->IsDead()) {
-				SelectedUnits[i]->EmptyQue();
-				SelectedUnits[i]->AddAttackAction(EnemyUnit, SelectedUnits[i]->UNIT_ORDERED_PRIORITY);
+		if (EnemyUnit != nullptr && EnemyUnit->IsValidLowLevel() && !EnemyUnit->IsDead()) {
+			for (int i = 0; i < SelectedUnits.Num(); i++) {
+				AFPSCharacter* Player = Cast<AFPSCharacter>(SelectedUnits[i]);
+				if (Player == nullptr) {
+					if (SelectedUnits[i]->IsValidLowLevel() && !SelectedUnits[i]->IsDead()) {
+						SelectedUnits[i]->EmptyQue();
+						SelectedUnits[i]->AddAttackAction(EnemyUnit, SelectedUnits[i]->UNIT_ORDERED_PRIORITY);
+					}
+				}
+				else {
+					Player->SpawnOrderMarker(FVector(), EnemyUnit);
+				}
 			}
-			else {
-				InvalidUnitIDs.Add(i);
-			}
-		}
-		for (int j = 0; j < InvalidUnitIDs.Num(); j++) {
-			SelectedUnits.RemoveAt(j);
 		}
 	}
 }

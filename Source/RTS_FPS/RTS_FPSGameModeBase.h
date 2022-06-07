@@ -21,14 +21,18 @@ public:
 
 	int MatchGameplayType;
 
+	FString PlayerName;
+
 	FMatchRequest() {
 		Team = -1;
 		MatchGameplayType = -1;
+		PlayerName = "";
 	}
 
-	FMatchRequest(int inTeam, int inMatchGameplayType) {
+	FMatchRequest(int inTeam, int inMatchGameplayType, FString inPlayerName) {
 		Team = inTeam;
 		MatchGameplayType = inMatchGameplayType;
+		PlayerName = inPlayerName;
 	}
 };
 
@@ -51,6 +55,17 @@ public:
 		
 };
 
+USTRUCT(BlueprintType) struct FRoles
+{
+	GENERATED_BODY()
+
+		bool bTeam1Commander = false;
+
+	bool bTeam2Commander = false;
+
+	FRoles() {}
+};
+
 
 UCLASS()
 class RTS_FPS_API ARTS_FPSGameModeBase : public AGameModeBase
@@ -71,9 +86,7 @@ private:
 
 	int Team2Num = 0;
 
-	bool bTeam1Commander = false;
-
-	bool bTeam2Commander = false;
+	FRoles Roles = FRoles();
 
 	virtual void PostSeamlessTravel() override;
 
@@ -93,12 +106,16 @@ private:
 
 	TArray<FPCData> Data;
 
+	TArray<AController*> OldControllerList;
+
+	TArray<FMatchRequest> CurrRequests;
+
 protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Multiplayer")
 		float TimeoutTime = 15;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Multiplayer")
-		float CheckInterval = 0.2;
+		float CheckInterval = 1.f;
 
 public:
 	//Public Server-Side Function to Launch a Match (ONLY USABLE POST LOBBY CREATION)
@@ -107,4 +124,5 @@ public:
 
 	bool RequestMatchPosition(FMatchRequest inRequest, APlayerController* RequestingPC);
 
+	TArray<FMatchRequest> GetMatchRequests() { return CurrRequests; }
 };

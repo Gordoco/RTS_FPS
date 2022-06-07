@@ -3,12 +3,10 @@
 
 #include "BaseUnit.h"
 #include "BaseUnitController.h"
-#include "MovementActionData.h"
 #include "AttackActionData.h"
 #include "UnitTracker.h"
 #include "FPSCharacter.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "NavigationSystem.h"
 #include "Runtime/Core/Public/Misc/AssertionMacros.h"
 #include "Engine.h"
 
@@ -40,25 +38,23 @@ void ABaseUnit::BeginPlay()
 	}
 	Super::BeginPlay();
 	if (Cast<AFPSCharacter>(this) == nullptr) {
-		SpawnDefaultController();
-		/*if (HasAuthority()) {
-			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Server: I AM A UNIT");
-		}
-		else {
-			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Client: I AM A UNIT");
-		}*/
+		BeginPlay_Units();
+	}
+}
 
-		//Server Side Setup
-		if (HasAuthority()) {
-			Health = MaxHealth;
-			ActionQue = NewObject<UAIQueue>();
-			ActionQue->SetOwner(this);
-			Brain = NewObject<UBaseBrain>(this, BrainClass);
-			Brain->Team = Team;
-			Brain->SetOwner(this);
-			RecieveAction();
-			CheckForCombatIterator();
-		}
+void ABaseUnit::BeginPlay_Units() {
+	SpawnDefaultController();
+
+	//Server Side Setup
+	if (HasAuthority()) {
+		Health = MaxHealth;
+		ActionQue = NewObject<UAIQueue>();
+		ActionQue->SetOwner(this);
+		Brain = NewObject<UBaseBrain>(this, BrainClass);
+		Brain->Team = Team;
+		Brain->SetOwner(this);
+		RecieveAction();
+		CheckForCombatIterator();
 	}
 }
 
@@ -91,7 +87,6 @@ void ABaseUnit::EmptyQue() {
 		if (ActionQue != nullptr) {
 			CurrentAction = FAction();
 			bAttacking = false;
-			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "EMPTYING UNIT QUE: ActionQue IS VALID");
 			AAIController* AIController = Cast<AAIController>(GetController());
 			if (AIController != nullptr) {
 				AIController->StopMovement();
@@ -169,20 +164,26 @@ void ABaseUnit::AddMovementAction(FVector Location, int prio, float inAcceptable
 			const FNavAgentProperties& AgentProps = GetNavAgentPropertiesRef();
 			FNavLocation ProjectedLocation;
 
-			if (FAISystem::IsValidLocation(Location) == true && NavSys->ProjectPointToNavigation(Location, ProjectedLocation, INVALID_NAVEXTENT, &AgentProps)) {
-				Data->SetLocation(Location);
-				Data->AcceptableRadius = inAcceptableRadius;
-				AddAction(FAction(Data, prio));
+			if (Location != LastMoveLocation
+				&& (FAISystem::IsValidLocation(Location) == true 
+				&& NavSys->ProjectPointToNavigation(Location, ProjectedLocation, INVALID_NAVEXTENT, &AgentProps))) {
+				LastMoveLocation = Location;
+				AddMovementAction_Helper(Data, Location, prio, inAcceptableRadius);
 			}
 			else {
 				FNavLocation outLoc;
 				NavSys->GetRandomReachablePointInRadius(GetActorLocation(), 50.f, outLoc);
-				Data->SetLocation(outLoc.Location);
-				Data->AcceptableRadius = inAcceptableRadius;
-				AddAction(FAction(Data, prio));
+				LastMoveLocation = FVector();
+				AddMovementAction_Helper(Data, outLoc.Location, prio, inAcceptableRadius);
 			}
 		}
 	}
+}
+
+void ABaseUnit::AddMovementAction_Helper(UMovementActionData* Data, FVector Location, int prio, float inAcceptableRadius) {
+	Data->SetLocation(Location);
+	Data->AcceptableRadius = inAcceptableRadius;
+	AddAction(FAction(Data, prio));
 }
 
 void ABaseUnit::AddAttackAction(ABaseUnit* Enemy, int prio) {
@@ -210,16 +211,18 @@ void ABaseUnit::CheckForCombatIterator() {
 	if (HasAuthority() && !IsDead()) {
 		TArray<ABaseUnit*> PotentialEnemys = UUnitTracker::GetUnitsInRange(Team, VisionRange, GetActorLocation());
 		for (ABaseUnit* PotentialEnemy : PotentialEnemys) {
-			if (!EnemyList.Contains(PotentialEnemy) && !PotentialEnemy->IsDead()) {
+			if (PotentialEnemy != nullptr && PotentialEnemy->IsValidLowLevel() && !PotentialEnemy->IsDead()) {
 				float Dist = FVector::Dist(PotentialEnemy->GetActorLocation(), GetActorLocation());
 				if (Dist <= VisionRange) {
-					AddAttackAction(PotentialEnemy, UNIT_RESPONSE_PRIORITY);
-					EnemyList.Add(PotentialEnemy);
+					if (!EnemyList.Contains(PotentialEnemy)) {
+						AddAttackAction(PotentialEnemy, UNIT_RESPONSE_PRIORITY);
+						EnemyList.Add(PotentialEnemy);
+					}
+				}
+				if (Dist <= PotentialEnemy->VisionRange) {
 					if (!PotentialEnemy->EnemyList.Contains(this)) {
-						if (Dist <= PotentialEnemy->VisionRange) {
-							PotentialEnemy->AddAttackAction(this, UNIT_RESPONSE_PRIORITY);
-							PotentialEnemy->EnemyList.Add(this);
-						}
+						PotentialEnemy->AddAttackAction(this, UNIT_RESPONSE_PRIORITY);
+						PotentialEnemy->EnemyList.Add(this);
 					}
 				}
 			}
@@ -254,10 +257,9 @@ void ABaseUnit::MovementActionHandler() {
 	InitCheckForCombat();
 	UMovementActionData* Data = Cast<UMovementActionData>(CurrentAction.ActionData);
 	if (Data != nullptr) {
-		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Attempted Movement");
 		AAIController* AIController = Cast<AAIController>(GetController());
-		if (AIController->IsValidLowLevel()) {
-			AIController->MoveToLocation(Data->GetLocation(), Data->AcceptableRadius, false, true, true, true);
+		if (AIController != nullptr && AIController->IsValidLowLevel()) {
+			AIController->MoveToLocation(Data->GetLocation(), Data->AcceptableRadius, true, true, true, true);
 		}
 		else {
 			FinishAction();
@@ -273,14 +275,17 @@ void ABaseUnit::MovementActionHandler() {
 void ABaseUnit::AttackActionHandler() {
 	bAttacking = true;
 	UAttackActionData* Data = Cast<UAttackActionData>(CurrentAction.ActionData);
-	if (Data != nullptr) {
+	AAIController* AIController = Cast<AAIController>(GetController());
+	if (Data != nullptr && AIController != nullptr) {
 		ABaseUnit* Enemy = Data->GetEnemy();
-		//Verify Enemy pointer validity (NOT Safe to Destroy() on death, Call Die() Instead), Check if Enemy should be dead, Check if within StopRange
-		if (Enemy->IsValidLowLevel() && !Enemy->IsDead() && FVector::Dist(Enemy->GetActorLocation(), GetActorLocation()) <= StopRange) {
 
-			//GEngine->AddOnScreenDebugMessage(12, 5.f, FColor::Green, "SHOULD ATTACK/MOVE AND ATTACK");
-			if (CheckIfInRange(Enemy->GetActorLocation())) {
-				//GEngine->AddOnScreenDebugMessage(13, 5.f, FColor::Green, "IN RANGE (ATTACKING)");
+		//Verify Enemy pointer validity (NOT Safe to Destroy() on death, Call Die() Instead), Check if Enemy should be dead, Check if within StopRange
+		if (Enemy != nullptr && Enemy->IsValidLowLevel() && !Enemy->IsDead() && FVector::Dist(Enemy->GetActorLocation(), GetActorLocation()) <= StopRange) {
+
+			//Check for Range and LOS
+			if (CheckIfInRange(Enemy->GetActorLocation()) && AIController->LineOfSightTo(Enemy, GetActorLocation())) {
+
+				//Check for Attack Speed
 				if (bReadyToAttack) {
 					MakeAttack(Enemy, Damage);
 					bReadyToAttack = false;
@@ -288,12 +293,25 @@ void ABaseUnit::AttackActionHandler() {
 				}
 			}
 			else {
-				//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "OUT OF RANGE (MOVING TO: " + CalculateLocationInRange(Enemy->GetActorLocation()).ToString() + ")");
-				FVector TargetLocation = CalculateLocationInRange(Enemy->GetActorLocation());
+
+				//Attempt to get a valid location to Move To
+				FVector TargetLocation = CalculateLocationInRange(Enemy->GetActorLocation(), Enemy);
+
 				if (TargetLocation != NULL_VECTOR) {
+
+					//On Success Move In Range
 					CachedAttackAction = CurrentAction;
+					CheckIfInRangeDelegate.BindUFunction(this, "CheckIfInRange_Iterator", Enemy);
+					GetWorld()->GetTimerManager().SetTimer(CheckIfInRangeHandle, CheckIfInRangeDelegate, 0.2, true);
+					AddMovementAction(TargetLocation, CurrentAction.Priority + 1);
 				}
-				AddMovementAction(TargetLocation, CurrentAction.Priority + 1);
+				else {
+					FTimerHandle FailedRangeHandle;
+					FTimerDelegate FailedRangeDelegate;
+					FailedRangeDelegate.BindUFunction(this, "FinishRemoveEnemy", CurrentAction);
+					GetWorld()->GetTimerManager().SetTimer(FailedRangeHandle, FailedRangeDelegate, 1.f, false);
+					FinishAction();
+				}
 			}
 		}
 		else {
@@ -307,13 +325,34 @@ void ABaseUnit::AttackActionHandler() {
 	}
 }
 
+void ABaseUnit::FinishRemoveEnemy(FAction Action) {
+	UAttackActionData* Data = Cast<UAttackActionData>(Action.ActionData);
+	if (Data != nullptr) {
+		ABaseUnit* Enemy = Data->GetEnemy();
+		if (Enemy != nullptr && Enemy->IsValidLowLevel() && !Enemy->IsDead()) {
+			RemoveEnemyFromList(Enemy);
+		}
+	}
+}
+
+void ABaseUnit::CheckIfInRange_Iterator(ABaseUnit* Enemy) {
+	if (CheckIfInRange(Enemy->GetActorLocation()) || Enemy->IsDead()) {
+		GetWorld()->GetTimerManager().ClearTimer(CheckIfInRangeHandle);
+		AAIController* AIController = Cast<AAIController>(GetController());
+		if (AIController != nullptr) {
+			AIController->StopMovement();
+			PostMovementAction();
+		}
+	}
+}
+
 void ABaseUnit::AttackReset() {
 	bReadyToAttack = true;
 	AttackActionHandler();
 }
 
 bool ABaseUnit::RemoveEnemyFromList(ABaseUnit* Enemy) {
-	if (Enemy->IsValidLowLevel()) {
+	if (Enemy != nullptr && Enemy->IsValidLowLevel()) {
 		if (EnemyList.Contains(Enemy)) {
 			EnemyList.Remove(Enemy);
 			return true;
@@ -326,57 +365,82 @@ bool ABaseUnit::CheckIfInRange(FVector Location) {
 	return FVector::Dist(Location, GetActorLocation()) <= AttackRange;
 }
 
-//ADD LOS CHECKS
-FVector ABaseUnit::CalculateLocationInRange(FVector EnemyLocation) {
+FVector ABaseUnit::CalculateLocationInRange(FVector EnemyLocation, ABaseUnit* Enemy) {
+	//Calculate Direction
 	FVector Dir = EnemyLocation - GetActorLocation();
 	Dir.Normalize();
+
+	//Get Straight line point in range
 	float Dist = FMath::Abs(FVector::Dist(EnemyLocation, GetActorLocation()));
 	FVector ReturnVector = GetActorLocation() + (Dir * ((Dist - AttackRange) * 1.1));
+
+	//Line trace down to ground at straight line location
 	FHitResult Hit;
 	GetWorld()->LineTraceSingleByChannel(Hit, FVector(ReturnVector.X, ReturnVector.Y, 10000), FVector(ReturnVector.X, ReturnVector.Y, -10000), ECC_Camera);
 	FVector Final = FVector(ReturnVector.X, ReturnVector.Y, Hit.Location.Z);
+
+	//Ensure location is in range and when tracing to the ground it hit a valid surface
 	if (FVector::Dist(Final, EnemyLocation) > AttackRange || !Hit.bBlockingHit) {
 		return NULL_VECTOR;
 	}
-	FVector EndVector;
+
+	//Return vector init as NULL
+	FVector EndVector = NULL_VECTOR;
+
 	//NAV SYSTEM VARs
 	UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
 	const FNavAgentProperties& AgentProps = GetNavAgentPropertiesRef();
 	FNavLocation ProjectedLocation;
 
-	//Return Straight Line Result if Valid
-	if (FAISystem::IsValidLocation(Final) == true && NavSys->ProjectPointToNavigation(Final, ProjectedLocation, INVALID_NAVEXTENT, &AgentProps) && !Cast<ABaseUnit>(Hit.GetActor())) {
-		EndVector = Final;
-	}
-	else {
-		//Recursively find points left and right at an interval along the circumfrence of the "In Range Circle" and return closest valid result
-		float Angle = UKismetMathLibrary::Atan2(Dir.Y, Dir.X) + UKismetMathLibrary::GetPI()/2;
-		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::SanitizeFloat(Team) + ": " + ReturnVector.ToString());
-		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::SanitizeFloat(Team) + ": " + FString::SanitizeFloat(FMath::RadiansToDegrees(Angle)));
-		FVector FirstLeftPoint = Rec_CalculateLocationInRange(EnemyLocation, Angle, 0.5f, true, Angle);
-		FVector FirstRightPoint = Rec_CalculateLocationInRange(EnemyLocation, Angle, 0.5f, false, Angle);
-		if (FirstLeftPoint == NULL_VECTOR) {
-			EndVector = FirstRightPoint;
-		}
-		else if (FirstRightPoint == NULL_VECTOR) {
-			EndVector = FirstLeftPoint;
+
+	AAIController* AIController = Cast<AAIController>(GetController());
+	if (AIController != nullptr) {
+
+		//Return Straight Line Result if Valid
+		if (ValidateLocationInRange(Enemy, Final, NavSys, AgentProps, &ProjectedLocation, AIController, Hit)) {
+			EndVector = Final;
 		}
 		else {
-			float Dist1 = FVector::Dist(GetActorLocation(), FirstLeftPoint);
-			float Dist2 = FVector::Dist(GetActorLocation(), FirstRightPoint);
-			if (Dist1 < Dist2) {
-				EndVector = FirstLeftPoint;
+
+			//Recursively find points left and right at an interval along the circumfrence of the "In Range Circle" and return closest valid result
+			float Angle = UKismetMathLibrary::Atan2(Dir.Y, Dir.X) + UKismetMathLibrary::GetPI() / 2; //Calculate angle of straight line point (Atan2 for 360 degree return value)
+			
+			//Rotate around the circle in opposite directions
+			FVector FirstLeftPoint = Rec_CalculateLocationInRange(EnemyLocation, Enemy, Angle, 0.5f, true, Angle);
+			FVector FirstRightPoint = Rec_CalculateLocationInRange(EnemyLocation, Enemy, Angle, 0.5f, false, Angle);
+
+			//Skip determining result if either side is a NULL value
+			if (FirstLeftPoint == NULL_VECTOR && FirstRightPoint == NULL_VECTOR) {
+				return NULL_VECTOR;
 			}
 			else {
-				EndVector = FirstRightPoint;
+				if (FirstLeftPoint == NULL_VECTOR) {
+					EndVector = FirstRightPoint;
+				}
+				else if (FirstRightPoint == NULL_VECTOR) {
+					EndVector = FirstLeftPoint;
+				}
+				else {
+
+					//Choose closest valid location if both left and right are valid
+					float Dist1 = FVector::Dist(GetActorLocation(), FirstLeftPoint);
+					float Dist2 = FVector::Dist(GetActorLocation(), FirstRightPoint);
+					if (Dist1 < Dist2) {
+						EndVector = FirstLeftPoint;
+					}
+					else {
+						EndVector = FirstRightPoint;
+					}
+				}
 			}
 		}
 	}
 	return EndVector;
 }
 
-FVector ABaseUnit::Rec_CalculateLocationInRange(FVector EnemyLocation, float Angle, float Interval, bool bLeft, float OriginalAngle) {
-	FVector ReturnVector;
+FVector ABaseUnit::Rec_CalculateLocationInRange(FVector EnemyLocation, ABaseUnit* Enemy, float Angle, float Interval, bool bLeft, float OriginalAngle) {
+
+	//Rotate around the range circle by an interval
 	float NewAngle;
 	if (bLeft) {
 		NewAngle = Angle + Interval;
@@ -384,26 +448,46 @@ FVector ABaseUnit::Rec_CalculateLocationInRange(FVector EnemyLocation, float Ang
 	else {
 		NewAngle = Angle - Interval;
 	}
-	ReturnVector = FVector(EnemyLocation.X + ((AttackRange * 0.9) * FMath::Sin(NewAngle)), EnemyLocation.Y + (AttackRange * FMath::Cos(NewAngle)), EnemyLocation.Z);
+
+	//Set ReturnVector to next rotated value
+	FVector ReturnVector = FVector(EnemyLocation.X + ((AttackRange * 0.9) * FMath::Sin(NewAngle)), EnemyLocation.Y + (AttackRange * FMath::Cos(NewAngle)), EnemyLocation.Z);
+
+	//Trace Returned location to the ground
 	FHitResult Hit;
 	GetWorld()->LineTraceSingleByChannel(Hit, FVector(ReturnVector.X, ReturnVector.Y, 10000), FVector(ReturnVector.X, ReturnVector.Y, -10000), ECC_Camera);
 	FVector Final = FVector(ReturnVector.X, ReturnVector.Y, Hit.Location.Z);
+
 	//NAV SYSTEM VARs
 	UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
 	const FNavAgentProperties& AgentProps = GetNavAgentPropertiesRef();
 	FNavLocation ProjectedLocation;
-	//Return Straight Line Result if Valid
-	if (FAISystem::IsValidLocation(Final) == true && NavSys->ProjectPointToNavigation(Final, ProjectedLocation, INVALID_NAVEXTENT, &AgentProps) && !Cast<ABaseUnit>(Hit.GetActor())) {
-		return Final;
+
+	AAIController* AIController = Cast<AAIController>(GetController());
+	if (AIController != nullptr) {
+
+		//Return Current Result if Valid (Base Case)
+		if (ValidateLocationInRange(Enemy, Final, NavSys, AgentProps, &ProjectedLocation, AIController, Hit)) {
+			return Final;
+		}
+		else if (FMath::Abs(NewAngle - OriginalAngle) < Interval) { return NULL_VECTOR; } //Prevent infinite recursion by stopping when completing a full circle
+		else {
+			//Check Next Angle (Recursive Case)
+			return Rec_CalculateLocationInRange(EnemyLocation, Enemy, NewAngle, Interval, bLeft, OriginalAngle);
+		}
 	}
-	else if (FMath::Abs(NewAngle - OriginalAngle) < Interval) {
-		//FAILED
-		return NULL_VECTOR;
+	else { return NULL_VECTOR; } //If AI is invalidated terminate
+}
+
+bool ABaseUnit::ValidateLocationInRange(ABaseUnit* Enemy, FVector Final, UNavigationSystemV1* NavSys, const FNavAgentProperties& AgentProps, FNavLocation* ProjectedLocation, AAIController* AIController, FHitResult Hit) {
+	if (FAISystem::IsValidLocation(Final) == true
+		&& NavSys->ProjectPointToNavigation(Final, *ProjectedLocation, INVALID_NAVEXTENT, &AgentProps)
+		&& !Cast<ABaseUnit>(Hit.GetActor())
+		&& AIController->LineOfSightTo(Enemy, FVector(Final.X, Final.Y, Final.Z + GetCapsuleComponent()->GetScaledCapsuleHalfHeight()))
+		&& !(FVector::Dist(Final, Enemy->GetActorLocation()) > AttackRange || !Hit.bBlockingHit)
+		&& !(UKismetMathLibrary::NearlyEqual_FloatFloat(Final.X, 0, 0.5) && UKismetMathLibrary::NearlyEqual_FloatFloat(Final.Y, 0, 0.5) && UKismetMathLibrary::NearlyEqual_FloatFloat(Final.Z, 0, 0.5))) {
+		return true;
 	}
-	else {
-		//Check Next Angle
-		return Rec_CalculateLocationInRange(EnemyLocation, NewAngle, Interval, bLeft, OriginalAngle);
-	}
+	return false;
 }
 
 //NEEDS CHANGING TO PROJECTILE/MELEE COMBAT AND TO MAKE INTERACTIVE WITH PLAYER
@@ -430,38 +514,74 @@ void ABaseUnit::OnRep_CheckForDeath() {
 
 //Add OnRep_Health { Health == 0 -> Die }
 void ABaseUnit::Die() {
-	/*
-	Add Animations and other various aesthetic aspects
-	*/
+	
+	//Remove Selection Sprite (All Network Roles)
 	SelectionSprite->SetVisibility(false);
+
+	//Server Only Cleanup
 	if (HasAuthority() && !Dead) {
+
+		//Set Variables and Deregister Unit from UnitTracker
 		Dead = true;
-		UUnitTracker::DeregisterUnit(this, Team);
-		GetCapsuleComponent()->SetCollisionResponseToAllChannels(ECR_Ignore);
-		GetWorld()->GetTimerManager().ClearTimer(FailedMovementHandle);
-		GetWorld()->GetTimerManager().ClearTimer(CheckForCombatHandle);
-		GetWorld()->GetTimerManager().ClearTimer(AttackSpeedHandle);
 		bAttacking = false;
-		AAIController* AIController = Cast<AAIController>(GetController());
-		if (AIController != nullptr) {
-			AIController->StopMovement();
-			AIController->Destroy();
-		}
-		if (ActionQue != nullptr) {
-			ActionQue->Invalidate();
-			ActionQue->ConditionalBeginDestroy();
-			ActionQue = nullptr;
-		}
-		if (Brain != nullptr) {
-			Brain->ConditionalBeginDestroy();
-			Brain = nullptr;
-		}
+		UUnitTracker::DeregisterUnit(this, Team);
+
+		//Helper Functions for Death
+		Die_DisableCollision();
+		Die_ClearTimers();
+		Die_InvalidateAndDestroyAI();
 		Die_Visuals();
+
+		//Final cleanup of actor including Destroy()
 		GetWorld()->GetTimerManager().SetTimer(PostDeathCleanupHandle, this, &ABaseUnit::PostDeathCleanup, PostDeathCleanupTime, false);
 	}
 }
 
+void ABaseUnit::Die_InvalidateAndDestroyAI() {
+
+	AAIController* AIController = Cast<AAIController>(GetController());
+	if (AIController != nullptr) {
+		//Destroy AIController and stop any active movement actions
+		AIController->StopMovement();
+		AIController->Destroy();
+	}
+	if (ActionQue != nullptr) {
+		//Destroy Action Data structure and Invalidate Members (Destruction not instant but disassociates data structure from unit)
+		ActionQue->Invalidate();
+		ActionQue->ConditionalBeginDestroy();
+		ActionQue = nullptr;
+	}
+	if (Brain != nullptr) {
+		//Destroys and invalidates the brain (Useful once AI Functionality moves to the BaseBrain Class)
+		Brain->ConditionalBeginDestroy();
+		Brain = nullptr;
+	}
+}
+
+void ABaseUnit::Die_DisableCollision() {
+	//Removes all collision that would affect other unit pathfinding and hit registration
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+	GetMesh()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+}
+
+void ABaseUnit::Die_ClearTimers() {
+	//Stops and timers that could be running at time of death
+	GetWorld()->GetTimerManager().ClearTimer(CheckIfInRangeHandle);
+	GetWorld()->GetTimerManager().ClearTimer(FailedMovementHandle);
+	GetWorld()->GetTimerManager().ClearTimer(CheckForCombatHandle);
+	GetWorld()->GetTimerManager().ClearTimer(AttackSpeedHandle);
+}
+
 void ABaseUnit::Die_Visuals_Implementation() {
+	//Clientside Collision functionality (To stop potential jitters on clientside
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+	GetMesh()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+
+	//Blueprint Die method for purely visual clientside things like Animation
 	BP_Die_Visuals();
 }
 
@@ -476,9 +596,13 @@ void ABaseUnit::FinishAction() {
 
 void ABaseUnit::FinishMovement(const FPathFollowingResult& Result) {
 	if (HasAuthority()) {
+		GetWorld()->GetTimerManager().ClearTimer(CheckIfInRangeHandle);
 		GetWorld()->GetTimerManager().ClearTimer(CheckForCombatHandle);
+
+		//Check for a faild move
 		if (!Result.IsSuccess()) {
 			if (FailedMovementCount > MAX_MOVEMENT_ACTIONS) {
+				//If failure happens too many times delay whole AI system
 				GetWorld()->GetTimerManager().SetTimer(FailedMovementHandle, this, &ABaseUnit::FinishAction, FailedMovementDelay, false);
 			}
 			else {
@@ -495,6 +619,7 @@ void ABaseUnit::FinishMovement(const FPathFollowingResult& Result) {
 }
 
 void ABaseUnit::PostMovementAction() {
+	//Check for Cached action if this is a Range Move
 	if (CachedAttackAction.Action_Type == "ATTACK") {
 		check(HasAuthority())
 		bAttacking = false;

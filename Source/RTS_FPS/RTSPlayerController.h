@@ -40,8 +40,20 @@ protected:
 	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Init")
 		int MatchGameplayType;
 
+private:
+	UFUNCTION(Server, WithValidation, Reliable)
+		void RetrieveMatchData();
+
+	UFUNCTION()
+		void Client_FinishInitLobby();
+
+	UPROPERTY(ReplicatedUsing = "Client_FinishInitLobby")
+		TArray<FMatchRequest> MatchRequests;
 
 public:
+	UFUNCTION(BlueprintCallable, Category = "Lobby")
+		void InitLobby();
+
 	void InitPC(int inMatchGameplayType, int inTeam);
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Ready")

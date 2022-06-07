@@ -15,6 +15,30 @@ void ARTSPlayerController::BeginPlay() {
 		.AddUObject(this, &ARTSPlayerController::OnWindowFocusChanged);
 }
 
+void ARTSPlayerController::InitLobby() {
+	RetrieveMatchData();
+}
+
+bool ARTSPlayerController::RetrieveMatchData_Validate() {
+	return true;
+}
+
+void ARTSPlayerController::RetrieveMatchData_Implementation() {
+	ARTS_FPSGameModeBase* GM = Cast<ARTS_FPSGameModeBase>(UGameplayStatics::GetGameMode(GetWorld()));
+	if (GM != nullptr) {
+		MatchRequests = GM->GetMatchRequests();
+		if (HasAuthority()) {
+			Client_FinishInitLobby();
+		}
+	}
+}
+
+void ARTSPlayerController::Client_FinishInitLobby() {
+	for (FMatchRequest Request : MatchRequests) {
+		CreatePlayerWidget(Request.MatchGameplayType, Request.Team, Request.PlayerName);
+	}
+}
+
 void ARTSPlayerController::StartMatch() {
 	if (Player != nullptr && Player->IsValidLowLevel()) {
 		if (UGameplayStatics::GetCurrentLevelName(GetWorld()) != "LobbyMenu" && UGameplayStatics::GetCurrentLevelName(GetWorld()) != "MainMenu") {
@@ -33,6 +57,7 @@ void ARTSPlayerController::GetLifetimeReplicatedProps(TArray< FLifetimeProperty 
 	DOREPLIFETIME(ARTSPlayerController, bReady);
 	DOREPLIFETIME(ARTSPlayerController, Team);
 	DOREPLIFETIME(ARTSPlayerController, MatchGameplayType);
+	DOREPLIFETIME(ARTSPlayerController, MatchRequests);
 }
 
 void ARTSPlayerController::OnWindowFocusChanged(bool isFocused) {
@@ -81,7 +106,7 @@ bool ARTSPlayerController::JoinTeamAtPosition_Validate(int inTeam, int inMatchGa
 void ARTSPlayerController::JoinTeamAtPosition_Implementation(int inTeam, int inMatchGameplayType) {
 	ARTS_FPSGameModeBase* GM = Cast<ARTS_FPSGameModeBase>(GetWorld()->GetAuthGameMode());
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Attempting to join Team: " + FString::SanitizeFloat(inTeam) + " as Type: " + FString::SanitizeFloat(inMatchGameplayType));
-	if (GM->RequestMatchPosition(FMatchRequest(inTeam, inMatchGameplayType), this)) {
+	if (GM->RequestMatchPosition(FMatchRequest(inTeam, inMatchGameplayType, PlayerState->GetPlayerName()), this)) {
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "SUCCESS");
 		InitPC(inMatchGameplayType, inTeam);
 		CreatePlayerWidget(inMatchGameplayType, inTeam, PlayerState->GetPlayerName());

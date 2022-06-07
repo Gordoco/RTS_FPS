@@ -8,7 +8,9 @@
 #include "Net/UnrealNetwork.h"
 #include "TimerManager.h"
 #include "PaperSpriteComponent.h"
+#include "MovementActionData.h"
 #include "BaseBrain.h"
+#include "NavigationSystem.h"
 #include "Navigation/PathFollowingComponent.h"
 #include "BaseUnit.generated.h"
 
@@ -46,109 +48,10 @@ public:
 
 	int FailedMovementCount = 0;
 
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Selection")
-		UPaperSpriteComponent* SelectionSprite;
-
-	void InitCheckForCombat();
-
-private:
-	static const int MAX_MOVEMENT_ACTIONS = 10;
-
-	FAction CachedAttackAction = FAction();
-
-	UPROPERTY()
-		UAIQueue* ActionQue;
-
-	UPROPERTY()
-		UBaseBrain* Brain;
-
-	UPROPERTY()
-		FAction CurrentAction = FAction();
-
-	void RecieveAction();
-
-	void FinishAction();
-
-	void PostMovementAction();
-
-	void RunAction();
-
-	void Debug_UnknownCommand(FString CommandTag);
-
-	void Debug_ActionCastError();
-
-	FTimerHandle CheckForCombatHandle;
-
-	float CheckForCombatFactor = 0.1;
-
-	void CheckForCombatIterator();
-
-	/*
-		Attack Helper Functions
-	*/
-	UPROPERTY()
-		int DebugCount = 0;
-
-	FTimerHandle AttackSpeedHandle;
-
-	void MovementActionHandler();
-
-	void AttackActionHandler();
-
-	void AttackReset();
-
-	bool bReadyToAttack = true;
-
-	bool CheckIfInRange(FVector EnemyLocation);
-
-	FVector CalculateLocationInRange(FVector EnemyLocation);
-
-	FVector Rec_CalculateLocationInRange(FVector EnemyLocation, float Angle, float Interval, bool bLeft, float OriginalAngle);
-
-	void MakeAttack(ABaseUnit* Enemy, float inDamage);
-
-	virtual void Die();
-
-	bool Dead = false;
-
-protected:
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Brain")
-		TSubclassOf<UBaseBrain> BrainClass = UBaseBrain::StaticClass();
-	/*
-		Unit Stats (NEED REPLICATION, SERVERSIDE MANAGMENT, ETC.)
-	*/
-	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
-		float MaxHealth = 100.f;
-
-	UPROPERTY(ReplicatedUsing = "OnRep_CheckForDeath")
-		float Health = MaxHealth;
-
-	UFUNCTION()
-	void OnRep_CheckForDeath();
-
-	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
-		float Damage = 1.f;
-
-	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
-		float AttackSpeed = 1.f;
-
-	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
-		float AttackRange = 500.f;
-
-	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
-		float VisionRange = 1000.f;
-
-	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
-		float StopRange = 2000.f;
-
-public:
 	UFUNCTION(BlueprintCallable, Category = "Stats")
 		void Kill() { DealDamage(MaxHealth); }
+
+	float GetVisionRange() { return VisionRange; }
 
 	//Keeps an up-to-date list of all enemys with an active attack action
 	TArray<ABaseUnit*> EnemyList;
@@ -167,6 +70,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Actions")
 		void AddMovementAction(FVector Location, int prio, float inAcceptableRadius = 1.f);
+
+	void AddMovementAction_Helper(UMovementActionData* Data, FVector Location, int prio, float inAcceptableRadius);
 
 	UFUNCTION(BlueprintCallable, Category = "Actions")
 		void AddAttackAction(ABaseUnit* Enemy, int prio);
@@ -187,7 +92,14 @@ public:
 
 	FTimerHandle FailedMovementHandle;
 
-	float FailedMovementDelay = 1.f;
+	FTimerHandle CheckIfInRangeHandle;
+
+	FTimerDelegate CheckIfInRangeDelegate;
+
+	UFUNCTION()
+		void CheckIfInRange_Iterator(ABaseUnit* Enemy);
+
+	float FailedMovementDelay = 0.5f;
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Attacking")
 		bool bAttacking = false;
@@ -219,4 +131,118 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Brain")
 		UBaseBrain* GetBrain() { return Brain; }
 
+
+protected:
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
+
+	void BeginPlay_Units();
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Selection")
+		UPaperSpriteComponent* SelectionSprite;
+
+	virtual void InitCheckForCombat();
+
+	virtual void CheckForCombatIterator();
+
+	FTimerHandle CheckForCombatHandle;
+
+	float CheckForCombatFactor = 0.1;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Brain")
+		TSubclassOf<UBaseBrain> BrainClass = UBaseBrain::StaticClass();
+	/*
+		Unit Stats (NEED REPLICATION, SERVERSIDE MANAGMENT, ETC.)
+	*/
+	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
+		float MaxHealth = 100.f;
+
+	UPROPERTY(ReplicatedUsing = "OnRep_CheckForDeath")
+		float Health = MaxHealth;
+
+	UFUNCTION()
+		void OnRep_CheckForDeath();
+
+	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
+		float Damage = 1.f;
+
+	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
+		float AttackSpeed = 1.f;
+
+	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
+		float AttackRange = 500.f;
+
+	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
+		float VisionRange = 1000.f;
+
+	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
+		float StopRange = 2000.f;
+
+
+private:
+	static const int MAX_MOVEMENT_ACTIONS = 10;
+
+	FAction CachedAttackAction = FAction();
+
+	UPROPERTY()
+		UAIQueue* ActionQue;
+
+	UPROPERTY()
+		UBaseBrain* Brain;
+
+	UPROPERTY()
+		FAction CurrentAction = FAction();
+
+	void RecieveAction();
+
+	void FinishAction();
+
+	void PostMovementAction();
+
+	void RunAction();
+
+	void Debug_UnknownCommand(FString CommandTag);
+
+	void Debug_ActionCastError();
+
+	/*
+		Attack Helper Functions
+	*/
+	UPROPERTY()
+		int DebugCount = 0;
+
+	FTimerHandle AttackSpeedHandle;
+
+	FVector LastMoveLocation;
+
+	UFUNCTION()
+		void FinishRemoveEnemy(FAction Action);
+
+	void MovementActionHandler();
+
+	void AttackActionHandler();
+
+	void AttackReset();
+
+	bool bReadyToAttack = true;
+
+	bool CheckIfInRange(FVector EnemyLocation);
+
+	FVector CalculateLocationInRange(FVector EnemyLocation, ABaseUnit* Enemy);
+
+	FVector Rec_CalculateLocationInRange(FVector EnemyLocation, ABaseUnit* Enemy, float Angle, float Interval, bool bLeft, float OriginalAngle);
+
+	bool ValidateLocationInRange(ABaseUnit* Enemy, FVector Final, UNavigationSystemV1* NavSys, const FNavAgentProperties& AgentProps, FNavLocation* ProjectedLocation, AAIController* AIController, FHitResult Hit);
+
+	void MakeAttack(ABaseUnit* Enemy, float inDamage);
+
+	virtual void Die();
+
+	void Die_InvalidateAndDestroyAI();
+
+	void Die_DisableCollision();
+
+	void Die_ClearTimers();
+
+	bool Dead = false;
 };
