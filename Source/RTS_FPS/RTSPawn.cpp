@@ -298,15 +298,20 @@ void ARTSPawn::PlayerClick()
 			PC->GetHitResultUnderCursor(ECC_Camera, false, Hit);
 			ABaseUnit* HitUnit = Cast<ABaseUnit>(Hit.GetActor());
 			ABaseBuilding* HitBuilding = Cast<ABaseBuilding>(Hit.GetActor());
-			for (int i = 0; i < SelectedUnits.Num(); i++) {
-				SelectedUnits[i]->Deselected();
-			}
-			for (int i = 0; i < SelectedBuildings.Num(); i++) {
-				SelectedBuildings[i]->Deselected();
-			}
-			DeselectAll();
+			
 			if (HitUnit != nullptr) {
 				EvaluateHitUnit(HitUnit);
+				for (int i = 0; i < SelectedUnits.Num(); i++) {
+					if (SelectedUnits[i] != HitUnit) {
+						SelectedUnits[i]->Deselected();
+					}
+				}
+				for (int i = 0; i < SelectedBuildings.Num(); i++) {
+					if (SelectedBuildings[i] != HitBuilding) {
+						SelectedBuildings[i]->Deselected();
+					}
+				}
+				DeselectAll();
 			}
 			else if (HitBuilding != nullptr){
 				EvaluateHitBuilding(HitBuilding);

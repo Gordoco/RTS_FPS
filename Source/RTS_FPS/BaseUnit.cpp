@@ -259,7 +259,7 @@ void ABaseUnit::MovementActionHandler() {
 	if (Data != nullptr) {
 		AAIController* AIController = Cast<AAIController>(GetController());
 		if (AIController != nullptr && AIController->IsValidLowLevel()) {
-			AIController->MoveToLocation(Data->GetLocation(), Data->AcceptableRadius, true, true, true, true);
+			AIController->MoveToLocation(Data->GetLocation(), Data->AcceptableRadius, true, true, true, true, false);
 		}
 		else {
 			FinishAction();
