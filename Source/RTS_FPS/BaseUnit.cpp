@@ -32,11 +32,11 @@ ABaseUnit::ABaseUnit()
 // Called when the game starts or when spawned
 void ABaseUnit::BeginPlay()
 {
+	Super::BeginPlay();
 	//Register Units and Players
 	if (HasAuthority()) {
 		UUnitTracker::RegisterUnit(this, Team);
 	}
-	Super::BeginPlay();
 	if (Cast<AFPSCharacter>(this) == nullptr) {
 		BeginPlay_Units();
 	}
@@ -190,10 +190,12 @@ void ABaseUnit::AddAttackAction(ABaseUnit* Enemy, int prio) {
 	check(HasAuthority());
 	if (HasAuthority() && !IsDead()) {
 		UAttackActionData* Data = NewObject<UAttackActionData>(this);
-		check(Data->IsValidLowLevel());
-		if (Data->IsValidLowLevel()) {
-			Data->SetEnemy(Enemy);
-			AddAction(FAction(Data, prio));
+		if (Data != nullptr) {
+			check(Data->IsValidLowLevel());
+			if (Data->IsValidLowLevel()) {
+				Data->SetEnemy(Enemy);
+				AddAction(FAction(Data, prio));
+			}
 		}
 	}
 }
@@ -210,21 +212,31 @@ void ABaseUnit::CheckForCombatIterator() {
 	check(HasAuthority());
 	if (HasAuthority() && !IsDead()) {
 		TArray<ABaseUnit*> PotentialEnemys = UUnitTracker::GetUnitsInRange(Team, VisionRange, GetActorLocation());
-		for (ABaseUnit* PotentialEnemy : PotentialEnemys) {
-			if (PotentialEnemy != nullptr && PotentialEnemy->IsValidLowLevel() && !PotentialEnemy->IsDead()) {
-				float Dist = FVector::Dist(PotentialEnemy->GetActorLocation(), GetActorLocation());
-				if (Dist <= VisionRange) {
-					if (!EnemyList.Contains(PotentialEnemy)) {
-						AddAttackAction(PotentialEnemy, UNIT_RESPONSE_PRIORITY);
-						EnemyList.Add(PotentialEnemy);
-					}
-				}
-				if (Dist <= PotentialEnemy->VisionRange) {
-					if (!PotentialEnemy->EnemyList.Contains(this)) {
-						PotentialEnemy->AddAttackAction(this, UNIT_RESPONSE_PRIORITY);
-						PotentialEnemy->EnemyList.Add(this);
-					}
-				}
+		for (int i = 0; i < PotentialEnemys.Num(); i++) {
+			if (UUnitTracker::CheckForValidity(i)) {
+				CheckForCombatHelper(PotentialEnemys[i]);
+			}
+			else {
+				//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "UNIT NOT VALID");
+			}
+		}
+	}
+}
+
+void ABaseUnit::CheckForCombatHelper(ABaseUnit* PotentialEnemy) {
+	check(PotentialEnemy != nullptr && PotentialEnemy->IsValidLowLevel() && !PotentialEnemy->IsDead());
+	if (PotentialEnemy != nullptr && PotentialEnemy->IsValidLowLevel() && !PotentialEnemy->IsDead()) {
+		float Dist = FVector::Dist(PotentialEnemy->GetActorLocation(), GetActorLocation());
+		if (Dist <= VisionRange) {
+			if (!EnemyList.Contains(PotentialEnemy)) {
+				AddAttackAction(PotentialEnemy, UNIT_RESPONSE_PRIORITY);
+				EnemyList.Add(PotentialEnemy);
+			}
+		}
+		if (Dist <= PotentialEnemy->VisionRange) {
+			if (!PotentialEnemy->EnemyList.Contains(this)) {
+				PotentialEnemy->AddAttackAction(this, UNIT_RESPONSE_PRIORITY);
+				PotentialEnemy->EnemyList.Add(this);
 			}
 		}
 	}

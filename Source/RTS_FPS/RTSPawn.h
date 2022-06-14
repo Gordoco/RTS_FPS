@@ -125,6 +125,9 @@ private:
 
 	void DeselectAllUnits();
 
+	UFUNCTION(BlueprintCallable, Category = "Units")
+		bool SelectUnit(ABaseUnit* Unit);
+
 	UFUNCTION(Server, WithValidation, Reliable)
 		void OrderUnits(FHitResult Hit);
 
@@ -132,7 +135,13 @@ private:
 		void OrderBuildings(FHitResult Hit);
 
 	UFUNCTION(Server, Reliable, WithValidation)
-		void SelectUnit(ABaseUnit* Unit);
+		void Server_SelectUnit(ABaseUnit* Unit);
+
+	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Teleportation")
+		void Server_Teleport(FVector Location);
+
+	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Orders")
+		void Server_OrderMovement(FVector LocationToMove);
 
 	UFUNCTION(Server, Reliable, WithValidation)
 		void DeselectUnit(ABaseUnit* Unit);

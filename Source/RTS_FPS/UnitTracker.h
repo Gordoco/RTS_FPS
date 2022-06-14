@@ -28,11 +28,17 @@ private:
 	inline static TArray<FTeamData> Teams;
 
 public:
+	inline static bool bActive = true;
+
 	static void Empty() { Teams.Empty(); }
 
 	static void RegisterUnit(ABaseUnit* Unit, int Team);
 
 	static void DeregisterUnit(ABaseUnit* Unit, int Team);
+
+	static int GetNumTeams() { return Teams.Num(); }
+
+	static bool CheckForValidity(int index);
 
 	static TArray<FTeamData> GetAllTeamData() { return UUnitTracker::Teams; }
 

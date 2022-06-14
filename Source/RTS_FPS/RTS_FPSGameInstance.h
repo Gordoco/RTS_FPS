@@ -113,6 +113,12 @@ class RTS_FPS_API URTS_FPSGameInstance : public UGameInstance
 	virtual void OnDestroySessionComplete(FName SessionName, bool bWasSuccessful);
 
 public:
+	UFUNCTION(BlueprintCallable, Category = "EndOfGame")
+		void ClearUnitTracker();
+
+	UFUNCTION(BlueprintCallable, Category = "EndOfGame")
+		void ActivateUnitTracker();
+
 	UFUNCTION(BlueprintCallable, Category = "Network|Test")
 		void StartOnlineGame(bool bLAN);
 

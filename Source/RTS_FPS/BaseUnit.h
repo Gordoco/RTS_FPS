@@ -145,6 +145,8 @@ protected:
 
 	virtual void CheckForCombatIterator();
 
+	void CheckForCombatHelper(ABaseUnit* PotentialEnemy);
+
 	FTimerHandle CheckForCombatHandle;
 
 	float CheckForCombatFactor = 0.1;

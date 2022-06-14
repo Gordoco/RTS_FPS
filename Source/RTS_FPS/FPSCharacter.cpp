@@ -110,12 +110,15 @@ void AFPSCharacter::CheckForCombatIterator() {
 	check(HasAuthority());
 	if (HasAuthority() && !IsDead()) {
 		TArray<ABaseUnit*> PotentialEnemys = UUnitTracker::GetUnitsInRange(Team, VisionRange, GetActorLocation());
-		for (ABaseUnit* PotentialEnemy : PotentialEnemys) {
-			float Dist = FVector::Dist(PotentialEnemy->GetActorLocation(), GetActorLocation());
-			if (Dist <= PotentialEnemy->GetVisionRange()) {
-				if (!PotentialEnemy->EnemyList.Contains(this)) {
-					PotentialEnemy->AddAttackAction(this, UNIT_RESPONSE_PRIORITY);
-					PotentialEnemy->EnemyList.Add(this);
+		for (int i = 0; i < PotentialEnemys.Num(); i++) {
+			if (UUnitTracker::CheckForValidity(i)) {
+				ABaseUnit* PotentialEnemy = PotentialEnemys[i];
+				float Dist = FVector::Dist(PotentialEnemy->GetActorLocation(), GetActorLocation());
+				if (Dist <= PotentialEnemy->GetVisionRange()) {
+					if (!PotentialEnemy->EnemyList.Contains(this)) {
+						PotentialEnemy->AddAttackAction(this, UNIT_RESPONSE_PRIORITY);
+						PotentialEnemy->EnemyList.Add(this);
+					}
 				}
 			}
 		}

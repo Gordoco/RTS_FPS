@@ -23,6 +23,16 @@ void URTS_FPSGameInstance::Shutdown() {
 	UUnitTracker::Empty();
 }
 
+void URTS_FPSGameInstance::ClearUnitTracker() {
+	UUnitTracker::Empty();
+	UUnitTracker::bActive = false;
+}
+
+void URTS_FPSGameInstance::ActivateUnitTracker() {
+	UUnitTracker::Empty();
+	UUnitTracker::bActive = true;
+}
+
 bool URTS_FPSGameInstance::HostSession(TSharedPtr<const FUniqueNetId> UserId, FName SessionName, bool bIsLAN, bool bIsPresence, int32 MaxNumPlayers)
 {
 	// Get the Online Subsystem to work with

@@ -213,6 +213,14 @@ void ARTSPawn::CalculateMovement() {
 
 }
 
+bool ARTSPawn::Server_Teleport_Validate(FVector Location) {
+	return true;
+}
+
+void ARTSPawn::Server_Teleport_Implementation(FVector Location) {
+	SetActorLocation(Location);
+}
+
 #ifdef UE_BUILD_DEBUG
 	/*
 	UNIT TESTS********************************************
@@ -316,9 +324,29 @@ void ARTSPawn::PlayerClick()
 			else if (HitBuilding != nullptr){
 				EvaluateHitBuilding(HitBuilding);
 			}
+			else {
+				for (int i = 0; i < SelectedUnits.Num(); i++) {
+					SelectedUnits[i]->Deselected();
+				}
+				for (int i = 0; i < SelectedBuildings.Num(); i++) {
+					SelectedBuildings[i]->Deselected();
+				}
+				DeselectAll();
+			}
 			DrawSelectionBox(Hit);
 		}
 	}
+}
+
+bool ARTSPawn::SelectUnit(ABaseUnit* Unit) {
+	if (Unit != nullptr && !Unit->IsDead()) {
+		if (Unit->GetTeam() == Team) {
+			Server_SelectUnit(Unit);
+			Unit->Selected();
+			return true;
+		}
+	}
+	return false;
 }
 
 void ARTSPawn::DrawSelectionBox(FHitResult Hit) 
@@ -335,13 +363,7 @@ void ARTSPawn::DrawSelectionBox(FHitResult Hit)
 
 void ARTSPawn::EvaluateHitUnit(ABaseUnit* HitUnit) {
 	bool bDeselect = true;
-	if (HitUnit != nullptr && !HitUnit->IsDead()) {
-		if (HitUnit->GetTeam() == Team) {
-			SelectUnit(HitUnit);
-			HitUnit->Selected();
-			bDeselect = false;
-		}
-	}
+	if (SelectUnit(HitUnit)) { bDeselect = false; }
 	if (bDeselect) {
 		for (int i = 0; i < SelectedUnits.Num(); i++) {
 			SelectedUnits[i]->Deselected();
@@ -374,12 +396,7 @@ void ARTSPawn::ReleaseLeftClick() {
 		SelectionBox->ConditionalBeginDestroy();
 		for (AActor* Actor : Units) {
 			ABaseUnit* Unit = Cast<ABaseUnit>(Actor);
-			if (Unit != nullptr && !Unit->IsDead()) {
-				if (Unit->GetTeam() == Team) {
-					SelectUnit(Unit);
-					Unit->Selected();
-				}
-			}
+			SelectUnit(Unit);
 		}
 	}
 }
@@ -393,11 +410,11 @@ void ARTSPawn::DeselectAll_Implementation() {
 	SelectedBuildings.Empty();
 }
 
-bool ARTSPawn::SelectUnit_Validate(ABaseUnit* Unit) {
+bool ARTSPawn::Server_SelectUnit_Validate(ABaseUnit* Unit) {
 	return (Unit != nullptr) && (!Unit->IsDead()) && (Unit->GetTeam() == Team);
 }
 
-void ARTSPawn::SelectUnit_Implementation(ABaseUnit* Unit) {
+void ARTSPawn::Server_SelectUnit_Implementation(ABaseUnit* Unit) {
 	SelectedUnits.Add(Unit);
 }
 
@@ -493,6 +510,14 @@ void ARTSPawn::OrderBuildings_Implementation(FHitResult Hit) {
 			}
 		}
 	}
+}
+
+bool ARTSPawn::Server_OrderMovement_Validate(FVector Location) {
+	return true;
+}
+
+void ARTSPawn::Server_OrderMovement_Implementation(FVector Location) {
+	OrderMovement(Location);
 }
 
 //O(n^2) (EXPENSIVE AF)
