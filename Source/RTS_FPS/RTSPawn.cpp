@@ -4,6 +4,7 @@
 #include "RTSPawn.h"
 #include "Engine.h"
 #include "BaseProductionBuilding.h"
+#include "BaseResourceUnit.h"
 #include "FPSCharacter.h"
 #include "Runtime/Core/Public/Misc/AssertionMacros.h"
 #include "Kismet/GameplayStatics.h"
@@ -483,10 +484,14 @@ void ARTSPawn::OrderUnits_Implementation(FHitResult Hit) {
 	check(HasAuthority());
 	if (HasAuthority()) {
 		ABaseUnit* PotentialEnemy = Cast<ABaseUnit>(Hit.GetActor());
+		ABaseResource* PotentialResource = Cast<ABaseResource>(Hit.GetActor());
 		if (PotentialEnemy != nullptr) {
 			if (PotentialEnemy->GetTeam() != Team) {
 				OrderAttack(PotentialEnemy);
 			}
+		}
+		else if (PotentialResource != nullptr) {
+			OrderGather(PotentialResource);
 		}
 		else {
 			if (Hit.Location != FVector()) {
@@ -544,6 +549,24 @@ void ARTSPawn::OrderMovement(FVector Location) {
 				}
 				else {
 					Player->SpawnOrderMarker(Location + Player->GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
+				}
+			}
+		}
+	}
+}
+
+void ARTSPawn::OrderGather(ABaseResource* Resource) {
+	check(HasAuthority());
+	if (HasAuthority()) {
+		for (int i = 0; i < SelectedUnits.Num(); i++) {
+			if (SelectedUnits[i]->IsValidLowLevel() && !SelectedUnits[i]->IsDead()) {
+				ABaseResourceUnit* Gatherer = Cast<ABaseResourceUnit>(SelectedUnits[i]);
+				if (Gatherer != nullptr) {
+					Gatherer->AddGatherAction(Resource, Gatherer->UNIT_ORDERED_PRIORITY);
+				}
+				else {
+					float MaxAcceptance = 34.f;
+					SelectedUnits[i]->AddMovementAction(Resource->GetActorLocation(), SelectedUnits[i]->UNIT_ORDERED_PRIORITY, MaxAcceptance);
 				}
 			}
 		}

@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Net/UnrealNetwork.h"
+#include "BaseResource.h"
 #include "Components/BoxComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "BaseBuilding.h"
@@ -160,6 +161,8 @@ private:
 	void Swap(int One, int Two, TArray<ABaseUnit*>* Arr);
 
 	void OrderAttack(ABaseUnit* EnemyUnit);
+
+	void OrderGather(ABaseResource* Resource);
 
 	APlayerController* GetPC();
 

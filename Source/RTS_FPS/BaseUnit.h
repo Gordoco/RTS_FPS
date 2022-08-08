@@ -74,7 +74,7 @@ public:
 	void AddMovementAction_Helper(UMovementActionData* Data, FVector Location, int prio, float inAcceptableRadius);
 
 	UFUNCTION(BlueprintCallable, Category = "Actions")
-		void AddAttackAction(ABaseUnit* Enemy, int prio);
+		virtual void AddAttackAction(ABaseUnit* Enemy, int prio);
 
 	//Should be called on Server
 	UFUNCTION(BlueprintCallable, Category = "Stats")
