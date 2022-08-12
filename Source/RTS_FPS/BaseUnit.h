@@ -138,6 +138,8 @@ protected:
 
 	void BeginPlay_Units();
 
+	virtual void RunAction();
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Selection")
 		UPaperSpriteComponent* SelectionSprite;
 
@@ -180,6 +182,9 @@ protected:
 	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
 		float StopRange = 2000.f;
 
+	UPROPERTY()
+		FAction CurrentAction = FAction();
+
 
 private:
 	static const int MAX_MOVEMENT_ACTIONS = 10;
@@ -192,16 +197,11 @@ private:
 	UPROPERTY()
 		UBaseBrain* Brain;
 
-	UPROPERTY()
-		FAction CurrentAction = FAction();
-
 	void RecieveAction();
 
 	void FinishAction();
 
 	void PostMovementAction();
-
-	void RunAction();
 
 	void Debug_UnknownCommand(FString CommandTag);
 

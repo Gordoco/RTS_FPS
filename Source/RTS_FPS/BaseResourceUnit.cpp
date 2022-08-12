@@ -49,3 +49,13 @@ void ABaseResourceUnit::AddGatherAction(ABaseResource* Resource, int prio) {
 
 	}
 }
+
+void ABaseResourceUnit::RunAction() {
+	Super::RunAction();
+	check(HasAuthority());
+	if (HasAuthority()) {
+		if (CurrentAction.ActionData != nullptr) {
+
+		}
+	}
+}

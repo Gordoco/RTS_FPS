@@ -25,6 +25,8 @@ protected:
 
 	virtual void AddAttackAction(ABaseUnit* Enemy, int prio) override;
 
+	virtual void RunAction() override;
+
 public:
 	UFUNCTION(BlueprintCallable, Category = "Actions")
 		void AddGatherAction(ABaseResource* Resource, int prio);

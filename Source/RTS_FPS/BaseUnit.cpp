@@ -246,17 +246,12 @@ void ABaseUnit::CheckForCombatHelper(ABaseUnit* PotentialEnemy) {
 void ABaseUnit::RunAction() {
 	check(HasAuthority());
 	if (HasAuthority()) {
-		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "RAN ACTION");
 		if (CurrentAction.ActionData != nullptr) {
 			if (CurrentAction.Action_Type == "MOVEMENT") {
 				MovementActionHandler();
 			}
 			else if (CurrentAction.Action_Type == "ATTACK") {
 				AttackActionHandler();
-			}
-			else {
-				Debug_UnknownCommand(CurrentAction.Action_Type);
-				FinishAction();
 			}
 		}
 		else {

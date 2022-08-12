@@ -300,7 +300,7 @@ void URTS_FPSGameInstance::OnDestroySessionComplete(FName SessionName, bool bWas
 			// If it was successful, we just load another level (could be a MainMenu!)
 			if (bWasSuccessful)
 			{
-				UGameplayStatics::OpenLevel(GetWorld(), "MainMenu", true);
+				UGameplayStatics::OpenLevel(GetWorld(), "AnimatedMainMenu", true);
 			}
 		}
 	}
