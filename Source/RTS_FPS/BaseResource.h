@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Components/InstancedStaticMeshComponent.h"
 #include "BaseResource.generated.h"
 
 UCLASS()
@@ -18,6 +19,21 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Meshes")
+		int NumMeshes = 10;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Meshes")
+		float MeshRadialDistance = 100.f;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Meshes")
+		float SpawningRadius = 1000.f;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Meshes")
+		UInstancedStaticMeshComponent* MasterMesh;
+
+	UFUNCTION(CallInEditor, Category = "Generation")
+		void GenerateMeshes();
 
 public:	
 	// Called every frame
