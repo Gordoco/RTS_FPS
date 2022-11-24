@@ -673,7 +673,7 @@ bool ABaseUnit::DoneCurrentAction() {
 }
 
 void ABaseUnit::CheckActions() {
-	RecieveAction();
+	if (bFinishedAction) RecieveAction();
 }
 
 // Called every frame
