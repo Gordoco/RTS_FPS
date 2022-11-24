@@ -159,24 +159,35 @@ void ABaseUnit::AddMovementAction(FVector Location, int prio, float inAcceptable
 		UMovementActionData* Data = NewObject<UMovementActionData>(this);
 		check(Data->IsValidLowLevel());
 		if (Data->IsValidLowLevel()) {
-			//VERIFY LOCATION
-			UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
-			const FNavAgentProperties& AgentProps = GetNavAgentPropertiesRef();
-			FNavLocation ProjectedLocation;
 
-			if (Location != LastMoveLocation
-				&& (FAISystem::IsValidLocation(Location) == true 
-				&& NavSys->ProjectPointToNavigation(Location, ProjectedLocation, INVALID_NAVEXTENT, &AgentProps))) {
-				LastMoveLocation = Location;
+			//VERIFY LOCATION
+			if (VerifyMoveLocation(Location, prio, inAcceptableRadius)) {
 				AddMovementAction_Helper(Data, Location, prio, inAcceptableRadius);
+				LastMoveLocation = Location;
 			}
 			else {
 				FNavLocation outLoc;
+				UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
 				NavSys->GetRandomReachablePointInRadius(GetActorLocation(), 50.f, outLoc);
 				LastMoveLocation = FVector();
 				AddMovementAction_Helper(Data, outLoc.Location, prio, inAcceptableRadius);
 			}
 		}
+	}
+}
+
+bool ABaseUnit::VerifyMoveLocation(FVector Location, int prio, float inAcceptableRadius) {
+	UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
+	const FNavAgentProperties& AgentProps = GetNavAgentPropertiesRef();
+	FNavLocation ProjectedLocation;
+
+	if (Location != LastMoveLocation
+		&& (FAISystem::IsValidLocation(Location)
+			&& NavSys->ProjectPointToNavigation(Location, ProjectedLocation, INVALID_NAVEXTENT, &AgentProps))) {
+		return true;
+	}
+	else {
+		return false;
 	}
 }
 
@@ -245,7 +256,9 @@ void ABaseUnit::CheckForCombatHelper(ABaseUnit* PotentialEnemy) {
 //FIND BETTER SCALABLE SOLUTION
 void ABaseUnit::RunAction() {
 	check(HasAuthority());
+	bFinishedAction = false;
 	if (HasAuthority()) {
+		AllocateActionWindow();
 		if (CurrentAction.ActionData != nullptr) {
 			if (CurrentAction.Action_Type == "MOVEMENT") {
 				MovementActionHandler();
@@ -257,6 +270,17 @@ void ABaseUnit::RunAction() {
 		else {
 			FinishAction();
 		}
+	}
+}
+
+void ABaseUnit::AllocateActionWindow() {
+	GetWorld()->GetTimerManager().SetTimer(ActionHandle, this, &ABaseUnit::CheckAction, ACTION_TIMEFRAME, true);
+}
+
+void ABaseUnit::CheckAction() {
+	if (bFinishedAction) {
+		GetWorld()->GetTimerManager().ClearTimer(ActionHandle);
+		RecieveAction();
 	}
 }
 
@@ -398,7 +422,6 @@ FVector ABaseUnit::CalculateLocationInRange(FVector EnemyLocation, ABaseUnit* En
 	UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
 	const FNavAgentProperties& AgentProps = GetNavAgentPropertiesRef();
 	FNavLocation ProjectedLocation;
-
 
 	AAIController* AIController = Cast<AAIController>(GetController());
 	if (AIController != nullptr) {
@@ -598,7 +621,8 @@ void ABaseUnit::FinishAction() {
 	GetWorld()->GetTimerManager().ClearTimer(FailedMovementHandle);
 	CurrentAction = FAction();
 	CachedAttackAction = FAction();
-	RecieveAction();
+	bFinishedAction = true;
+	//RecieveAction();
 }
 
 void ABaseUnit::FinishMovement(const FPathFollowingResult& Result) {
@@ -653,8 +677,9 @@ void ABaseUnit::CheckActions() {
 }
 
 // Called every frame
-void ABaseUnit::Tick(float DeltaTime)
-{Super::Tick(DeltaTime);}
+void ABaseUnit::Tick(float DeltaTime) {
+	Super::Tick(DeltaTime);
+}
 
 // Called to bind functionality to input
 void ABaseUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

@@ -30,9 +30,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Damage")
 		void DealDamage(float inDamage);
-	/*
-	PRIORITY CONSTANTS FOR AI QUEUE****************
-	*/
+
+	/*PRIORITY CONSTANTS FOR AI QUEUE*****************/
 	static const int UNIT_RESPONSE_PRIORITY = 10;
 
 	static const int UNIT_ORDERED_PRIORITY = 20;
@@ -42,9 +41,7 @@ public:
 	const FVector NULL_VECTOR = FVector(-9999, -9999, -9999);
 
 	const float UNIT_SHUFFLE_DISTANCE = 5.f;
-	/*
-	***********************************************
-	*/
+	/*************************************************/
 
 	int FailedMovementCount = 0;
 
@@ -70,6 +67,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Actions")
 		void AddMovementAction(FVector Location, int prio, float inAcceptableRadius = 1.f);
+
+	bool VerifyMoveLocation(FVector Location, int prio, float inAcceptableRadius = 1.f);
 
 	void AddMovementAction_Helper(UMovementActionData* Data, FVector Location, int prio, float inAcceptableRadius);
 
@@ -140,6 +139,17 @@ protected:
 
 	virtual void RunAction();
 
+	void AllocateActionWindow();
+
+	FTimerHandle ActionHandle;
+
+	const float ACTION_TIMEFRAME = 1.f;
+
+	bool bFinishedAction = true;
+
+	UFUNCTION()
+		void CheckAction();
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Selection")
 		UPaperSpriteComponent* SelectionSprite;
 
@@ -155,9 +165,8 @@ protected:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Brain")
 		TSubclassOf<UBaseBrain> BrainClass = UBaseBrain::StaticClass();
-	/*
-		Unit Stats (NEED REPLICATION, SERVERSIDE MANAGMENT, ETC.)
-	*/
+
+	/* Unit Stats (NEED REPLICATION, SERVERSIDE MANAGMENT, ETC.) */
 	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
 		float MaxHealth = 100.f;
 
@@ -184,7 +193,6 @@ protected:
 
 	UPROPERTY()
 		FAction CurrentAction = FAction();
-
 
 private:
 	static const int MAX_MOVEMENT_ACTIONS = 10;
