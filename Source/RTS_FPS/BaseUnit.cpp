@@ -119,6 +119,19 @@ void ABaseUnit::SearchForEnemies(int prio) {
 	}
 }
 
+void ABaseUnit::CheckNewActionPrio() {
+	check(HasAuthority());
+	if (HasAuthority() && !IsDead()) {
+		if (ActionQue != nullptr && Brain != nullptr) {
+			if (!ActionQue->IsEmpty()) {
+				if (CurrentAction.Priority < ActionQue->Peek().Priority) {
+					RecieveAction();
+				}
+			}
+		}
+	}
+}
+
 void ABaseUnit::RecieveAction() {
 	check(HasAuthority());
 	if (HasAuthority() && !IsDead()) {
@@ -281,6 +294,9 @@ void ABaseUnit::CheckAction() {
 	if (bFinishedAction) {
 		GetWorld()->GetTimerManager().ClearTimer(ActionHandle);
 		RecieveAction();
+	}
+	else {
+		CheckNewActionPrio();
 	}
 }
 
@@ -657,11 +673,9 @@ void ABaseUnit::PostMovementAction() {
 		GetWorld()->GetTimerManager().ClearTimer(FailedMovementHandle);
 		CurrentAction = CachedAttackAction;
 		CachedAttackAction = FAction();
-		RunAction();
+		//RunAction();
 	}
-	else {
-		FinishAction();
-	}
+	FinishAction();
 }
 
 bool ABaseUnit::DoneCurrentAction() {

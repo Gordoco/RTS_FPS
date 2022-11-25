@@ -31,6 +31,7 @@ FAction UAIQueue::Peek() {
 	return FAction();
 }
 
+//O(n)
 void UAIQueue::Empty() {
 	for (FAction Action : Queue) {
 		if (Action.Action_Type == "ATTACK") {
@@ -61,7 +62,7 @@ void UAIQueue::Insert_NoCheck(FAction Action) {
 			x = (pos - 1) / 2;
 		}
 		Parent = Queue[x];
-		//ADDING = MAKES WORST CASE RUNTIME MORE COMMON
+		//ADDING '=' MAKES WORST CASE RUNTIME MORE COMMON
 		if (Parent.Priority </*=*/ Action.Priority) {
 			Queue[x] = Action;
 			Queue[pos] = Parent;

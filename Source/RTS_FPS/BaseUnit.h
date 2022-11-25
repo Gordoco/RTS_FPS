@@ -143,7 +143,7 @@ protected:
 
 	FTimerHandle ActionHandle;
 
-	const float ACTION_TIMEFRAME = 1.f;
+	const float ACTION_TIMEFRAME = .2f;
 
 	bool bFinishedAction = true;
 
@@ -206,6 +206,8 @@ private:
 		UBaseBrain* Brain;
 
 	void RecieveAction();
+
+	void CheckNewActionPrio();
 
 	void FinishAction();
 
