@@ -26,7 +26,6 @@ AFPSCharacter::AFPSCharacter()
 	ADSFPSCamera->SetActive(false);
 
 	ActiveCam = FPSCamera;
-
 }
 
 void AFPSCharacter::SpawnOrderMarker_Implementation(FVector Location, ABaseUnit* Enemy) {
@@ -55,6 +54,7 @@ FHitResult AFPSCharacter::GetShotHit() {
 	check(GetWorld() != nullptr);
 	if (GetWorld() != nullptr) {
 		FVector Location = FiringLocation->GetComponentLocation();
+		//IMPLEMENT FIRING SPREAD
 		GetWorld()->LineTraceSingleByChannel(Hit, Location, Location + (ActiveCam->GetForwardVector() * AttackRange), ECC_Camera);
 	}
 	return Hit;
@@ -72,6 +72,7 @@ ABaseUnit* AFPSCharacter::ValidateHit(AActor* HitActor) {
 }
 
 bool AFPSCharacter::Server_DamageEnemy_Validate(ABaseUnit* Enemy) {
+	//Should validate hit on the server
 	return Enemy != nullptr;
 }
 
@@ -94,9 +95,7 @@ void AFPSCharacter::BeginPlay()
 	}
 }
 
-void AFPSCharacter::Init() {
-
-}
+void AFPSCharacter::Init() {}
 
 void AFPSCharacter::InitCheckForCombat() {
 	check(HasAuthority());
