@@ -44,6 +44,8 @@ protected:
 	UFUNCTION(BlueprintPure, Category = "Firing")
 		FHitResult GetShotHit();
 
+	FVector SpreadHitTransform(FVector IdealHit);
+
 	UFUNCTION(BlueprintCallable, Category = "Firing")
 		ABaseUnit* ValidateHit(AActor* HitActor);
 
@@ -53,11 +55,20 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Firing")
 		UBoxComponent* FiringLocation;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Firing")
+		float SpreadVal = 83;
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Components")
 		UCameraComponent* FPSCamera;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Components")
 		UCameraComponent* ADSFPSCamera;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Movement")
+		float BaseMovementSpeed = 600.f;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Movement")
+		float SprintMovementSpeed = 800.f;
 
 	virtual void Die();
 
@@ -77,6 +88,20 @@ private:
 
 	UFUNCTION()
 		void StopADS();
+
+	UFUNCTION()
+		void StartSprint();
+
+	UFUNCTION()
+		void StopSprint();
+
+	UFUNCTION()
+		void Slide();
+
+	UFUNCTION(Server, Reliable, WithValidation)
+		void UpdateSpeed(float newSpeed);
+
+	bool bSprinting = false;
 
 public:	
 	// Called every frame
