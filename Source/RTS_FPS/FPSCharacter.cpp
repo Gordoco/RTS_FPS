@@ -26,7 +26,6 @@ AFPSCharacter::AFPSCharacter()
 	ADSFPSCamera->SetActive(false);
 
 	ActiveCam = FPSCamera;
-
 }
 
 void AFPSCharacter::SpawnOrderMarker_Implementation(FVector Location, ABaseUnit* Enemy) {
@@ -55,9 +54,24 @@ FHitResult AFPSCharacter::GetShotHit() {
 	check(GetWorld() != nullptr);
 	if (GetWorld() != nullptr) {
 		FVector Location = FiringLocation->GetComponentLocation();
-		GetWorld()->LineTraceSingleByChannel(Hit, Location, Location + (ActiveCam->GetForwardVector() * AttackRange), ECC_Camera);
+		//IMPLEMENT FIRING SPREAD
+		FVector HitLocation = SpreadHitTransform(Location + (ActiveCam->GetForwardVector() * AttackRange));
+		GetWorld()->LineTraceSingleByChannel(Hit, Location, HitLocation, ECC_Camera);
 	}
 	return Hit;
+}
+
+FVector AFPSCharacter::SpreadHitTransform(FVector IdealHit) {
+	float tx = FMath::Rand();
+	float tz = FMath::Rand();
+
+	float RightMost = IdealHit.X + SpreadVal;
+	float LeftMost = IdealHit.X - SpreadVal;
+
+	float TopMost = IdealHit.Z + SpreadVal;
+	float BottomMost = IdealHit.Z - SpreadVal;
+
+	return FVector((LeftMost*tx) + (RightMost*(1-tx)), IdealHit.Y, (BottomMost*tz) + (TopMost * (1-tz)));
 }
 
 //Can add other validation code here
@@ -72,7 +86,7 @@ ABaseUnit* AFPSCharacter::ValidateHit(AActor* HitActor) {
 }
 
 bool AFPSCharacter::Server_DamageEnemy_Validate(ABaseUnit* Enemy) {
-	return Enemy != nullptr;
+	return ValidateHit(Enemy) != nullptr;
 }
 
 void AFPSCharacter::Server_DamageEnemy_Implementation(ABaseUnit* Enemy) {
@@ -94,9 +108,7 @@ void AFPSCharacter::BeginPlay()
 	}
 }
 
-void AFPSCharacter::Init() {
-
-}
+void AFPSCharacter::Init() {}
 
 void AFPSCharacter::InitCheckForCombat() {
 	check(HasAuthority());
@@ -138,6 +150,11 @@ void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 	PlayerInputComponent->BindAction("SecondaryAction", IE_Pressed, this, &AFPSCharacter::ADS);
 	PlayerInputComponent->BindAction("SecondaryAction", IE_Released, this, &AFPSCharacter::StopADS);
+
+	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &AFPSCharacter::StartSprint);
+	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &AFPSCharacter::StopSprint);
+
+	PlayerInputComponent->BindAction("Slide", IE_Pressed, this, &AFPSCharacter::Slide);
 }
 
 void AFPSCharacter::ADS() {
@@ -150,4 +167,30 @@ void AFPSCharacter::StopADS() {
 	ADSFPSCamera->SetActive(false);
 	FPSCamera->SetActive(true);
 	ActiveCam = FPSCamera;
+}
+
+void AFPSCharacter::StartSprint() {
+	GetCharacterMovement()->MaxWalkSpeed = SprintMovementSpeed;
+	UpdateSpeed(SprintMovementSpeed);
+	bSprinting = true;
+}
+
+void AFPSCharacter::StopSprint() {
+	GetCharacterMovement()->MaxWalkSpeed = BaseMovementSpeed;
+	UpdateSpeed(BaseMovementSpeed);
+	bSprinting = false;
+}
+
+bool AFPSCharacter::UpdateSpeed_Validate(float newSpeed) {
+	return newSpeed == BaseMovementSpeed || newSpeed == SprintMovementSpeed;
+}
+
+void AFPSCharacter::UpdateSpeed_Implementation(float newSpeed) {
+	GetCharacterMovement()->MaxWalkSpeed = newSpeed;
+}
+
+void AFPSCharacter::Slide() {
+	if (bSprinting) {
+		//SLIDE
+	}
 }
