@@ -59,6 +59,9 @@ public:
 
 	bool TEST;
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "SERVER_Debug")
+		void BP_SwappedActions();
+
 	UFUNCTION(BlueprintPure, Category = "Stats")
 		float GetHealth() { return Health; }
 
@@ -191,7 +194,7 @@ protected:
 	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
 		float StopRange = 2000.f;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category = "SERVER_Actions")
 		FAction CurrentAction = FAction();
 
 private:
@@ -233,6 +236,8 @@ private:
 	void MovementActionHandler();
 
 	void AttackActionHandler();
+
+	bool CheckLineOfSight(AAIController* AIController, ABaseUnit* Enemy);
 
 	void AttackReset();
 

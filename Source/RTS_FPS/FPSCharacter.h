@@ -56,7 +56,7 @@ protected:
 		UBoxComponent* FiringLocation;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Firing")
-		float SpreadVal = 83;
+		float SpreadVal = 1.f;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Components")
 		UCameraComponent* FPSCamera;
@@ -68,7 +68,10 @@ protected:
 		float BaseMovementSpeed = 600.f;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Movement")
-		float SprintMovementSpeed = 800.f;
+		float SprintMovementSpeed = 1000.f;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Movement")
+		float SlideDist = 10000.f;
 
 	virtual void Die();
 
@@ -99,9 +102,25 @@ private:
 		void Slide();
 
 	UFUNCTION(Server, Reliable, WithValidation)
+		void Slide_Server();
+
+	UFUNCTION(Client, Reliable, WithValidation)
+		void Slide_Client();
+
+	FTimerHandle SlideHandle;
+
+	FVector CurrSlideDir;
+
+	float slideCount = 0.f;
+
+	void SlideIterator();
+
+	UFUNCTION(Server, Reliable, WithValidation)
 		void UpdateSpeed(float newSpeed);
 
 	bool bSprinting = false;
+
+	bool bSliding = false;
 
 public:	
 	// Called every frame

@@ -45,6 +45,28 @@ void UAIQueue::Empty() {
 	Queue.Empty();
 }
 
+
+//O(n)
+FAction UAIQueue::GetClosestAttackAction(FVector Location, int prio) {
+	FAction BestAction = FAction();
+	int k = -1;
+	float closestDist = (float)INT32_MAX;
+	for (int i = 0; i < Queue.Num(); i++) {
+		if (Queue[i].Action_Type == "ATTACK" && Queue[i].Priority == prio) {
+			UAttackActionData* Data = Cast<UAttackActionData>(Queue[i].ActionData);
+			if (Data != nullptr && Owner != nullptr) {
+				if (FVector::Dist(Data->GetEnemy()->GetActorLocation(), Location) < closestDist) {
+					closestDist = FVector::Dist(Data->GetEnemy()->GetActorLocation(), Location);
+					BestAction = Queue[i];
+					k = i;
+				}
+			}
+		}
+	}
+	if (k != -1) Queue.RemoveAt(k);
+	return BestAction;
+}
+
 //O(log(n))
 void UAIQueue::Insert_NoCheck(FAction Action) {
 	check(Owner != nullptr);

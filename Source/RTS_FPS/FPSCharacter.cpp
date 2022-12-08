@@ -62,16 +62,13 @@ FHitResult AFPSCharacter::GetShotHit() {
 }
 
 FVector AFPSCharacter::SpreadHitTransform(FVector IdealHit) {
-	float tx = FMath::Rand();
-	float tz = FMath::Rand();
+	float tx = FMath::FRand();
+	float tz = FMath::FRand();
 
-	float RightMost = IdealHit.X + SpreadVal;
-	float LeftMost = IdealHit.X - SpreadVal;
-
-	float TopMost = IdealHit.Z + SpreadVal;
-	float BottomMost = IdealHit.Z - SpreadVal;
-
-	return FVector((LeftMost*tx) + (RightMost*(1-tx)), IdealHit.Y, (BottomMost*tz) + (TopMost * (1-tz)));
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::SanitizeFloat(tx) + " | " + FString::SanitizeFloat(tz));
+	return (IdealHit
+		+ (ActiveCam->GetRightVector() * ((-1 * SpreadVal * tx) + (SpreadVal * (1-tx))))
+		+ (ActiveCam->GetUpVector() * ((-1 * SpreadVal * tz) + (SpreadVal * (1 - tz)))));
 }
 
 //Can add other validation code here
@@ -138,10 +135,8 @@ void AFPSCharacter::CheckForCombatIterator() {
 }
 
 // Called every frame
-void AFPSCharacter::Tick(float DeltaTime)
-{
+void AFPSCharacter::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
-
 }
 
 // Called to bind functionality to input
@@ -190,7 +185,52 @@ void AFPSCharacter::UpdateSpeed_Implementation(float newSpeed) {
 }
 
 void AFPSCharacter::Slide() {
-	if (bSprinting) {
+	if (HasAuthority()) {
+		Slide_Server();
+	}
+	else {
+		Slide_Client();
+	}
+}
+
+bool AFPSCharacter::Slide_Server_Validate() {
+	return true;
+}
+
+bool AFPSCharacter::Slide_Client_Validate() {
+	return true;
+}
+
+void AFPSCharacter::Slide_Server_Implementation() {
+	if (bSprinting && !bSliding) {
 		//SLIDE
+		GetWorld()->GetTimerManager().SetTimer(SlideHandle, this, &AFPSCharacter::SlideIterator, .02f, true);
+		FVector Vel = GetVelocity();
+		Vel.Normalize();
+		CurrSlideDir = Vel;
+		bSliding = true;
+		Slide_Client();
+	}
+}
+
+void AFPSCharacter::Slide_Client_Implementation() {
+	if (bSprinting && !bSliding) {
+		//SLIDE
+		GetWorld()->GetTimerManager().SetTimer(SlideHandle, this, &AFPSCharacter::SlideIterator, .02f, true);
+		FVector Vel = GetVelocity();
+		Vel.Normalize();
+		CurrSlideDir = Vel;
+		bSliding = true;
+		Slide_Server();
+	}
+}
+
+void AFPSCharacter::SlideIterator() {
+	SetActorLocation(GetActorLocation() + (CurrSlideDir * (SlideDist * 0.03)));
+	slideCount += 0.02f;
+	if (slideCount >= 1.f) {
+		GetWorld()->GetTimerManager().ClearTimer(SlideHandle);
+		bSliding = false;
+		slideCount = 0;
 	}
 }

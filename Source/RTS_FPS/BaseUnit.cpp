@@ -16,8 +16,9 @@ ABaseUnit::ABaseUnit()
 	PrimaryActorTick.bCanEverTick = false;
 	AIControllerClass = ABaseUnitController::StaticClass();
 
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
-	GetMesh()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
+	for (UActorComponent* Comp : GetComponents()) {
+		if (Cast<UPrimitiveComponent>(Comp)) Cast<UPrimitiveComponent>(Comp)->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
+	}
 
 	bReplicates = true;
 	SetReplicateMovement(true);
@@ -52,6 +53,7 @@ void ABaseUnit::BeginPlay_Units() {
 		Brain = NewObject<UBaseBrain>(this, BrainClass);
 		Brain->Team = Team;
 		Brain->SetOwner(this);
+		AllocateActionWindow();
 		RecieveAction();
 		CheckForCombatIterator();
 	}
@@ -145,9 +147,15 @@ void ABaseUnit::RecieveAction() {
 						/*
 						Check and re-shuffle current action with highest priority
 						*/
-						bAttacking = false;
+						FAction temp;
+						if (ActionQue->Peek().Action_Type == "ATTACK") {
+							temp = ActionQue->GetClosestAttackAction(GetActorLocation(), ActionQue->Peek().Priority);
+						}
+						else {
+							temp = ActionQue->DeleteMax();
+						}
 						GetWorld()->GetTimerManager().ClearTimer(FailedMovementHandle);
-						FAction temp = ActionQue->DeleteMax();
+						bAttacking = false;
 						ActionQue->Insert_NoCheck(CurrentAction);
 						CurrentAction = temp;
 						RunAction();
@@ -270,7 +278,6 @@ void ABaseUnit::RunAction() {
 	check(HasAuthority());
 	bFinishedAction = false;
 	if (HasAuthority()) {
-		AllocateActionWindow();
 		if (CurrentAction.ActionData != nullptr) {
 			if (CurrentAction.Action_Type == "MOVEMENT") {
 				MovementActionHandler();
@@ -291,12 +298,13 @@ void ABaseUnit::AllocateActionWindow() {
 
 void ABaseUnit::CheckAction() {
 	if (bFinishedAction) {
-		GetWorld()->GetTimerManager().ClearTimer(ActionHandle);
+		//GetWorld()->GetTimerManager().ClearTimer(ActionHandle);
 		RecieveAction();
 	}
 	else {
 		CheckNewActionPrio();
 	}
+	BP_SwappedActions();
 }
 
 void ABaseUnit::MovementActionHandler() {
@@ -319,7 +327,6 @@ void ABaseUnit::MovementActionHandler() {
 
 //NEEDS WORK REGARDING FPS V UNIT COMBAT (ie. STRAFING, COVER, ETC.)
 void ABaseUnit::AttackActionHandler() {
-	bAttacking = true;
 	UAttackActionData* Data = Cast<UAttackActionData>(CurrentAction.ActionData);
 	AAIController* AIController = Cast<AAIController>(GetController());
 	if (Data != nullptr && AIController != nullptr) {
@@ -329,10 +336,11 @@ void ABaseUnit::AttackActionHandler() {
 		if (Enemy != nullptr && Enemy->IsValidLowLevel() && !Enemy->IsDead() && FVector::Dist(Enemy->GetActorLocation(), GetActorLocation()) <= StopRange) {
 
 			//Check for Range and LOS
-			if (CheckIfInRange(Enemy->GetActorLocation()) && AIController->LineOfSightTo(Enemy, GetActorLocation())) {
-
+			if (CheckIfInRange(Enemy->GetActorLocation()) && CheckLineOfSight(AIController, Enemy)) {
+				bAttacking = true;
 				//Check for Attack Speed
 				if (bReadyToAttack) {
+					AIController->StopMovement();
 					MakeAttack(Enemy, Damage);
 					bReadyToAttack = false;
 					GetWorld()->GetTimerManager().SetTimer(AttackSpeedHandle, this, &ABaseUnit::AttackReset, AttackSpeed, false);
@@ -343,21 +351,21 @@ void ABaseUnit::AttackActionHandler() {
 				//Attempt to get a valid location to Move To
 				FVector TargetLocation = CalculateLocationInRange(Enemy->GetActorLocation(), Enemy);
 
-				if (TargetLocation != NULL_VECTOR) {
+				//if (TargetLocation != NULL_VECTOR) {
 
 					//On Success Move In Range
 					CachedAttackAction = CurrentAction;
 					CheckIfInRangeDelegate.BindUFunction(this, "CheckIfInRange_Iterator", Enemy);
 					GetWorld()->GetTimerManager().SetTimer(CheckIfInRangeHandle, CheckIfInRangeDelegate, 0.2, true);
 					AddMovementAction(TargetLocation, CurrentAction.Priority + 1);
-				}
-				else {
+				//}
+				/*else {
 					FTimerHandle FailedRangeHandle;
 					FTimerDelegate FailedRangeDelegate;
 					FailedRangeDelegate.BindUFunction(this, "FinishRemoveEnemy", CurrentAction);
 					GetWorld()->GetTimerManager().SetTimer(FailedRangeHandle, FailedRangeDelegate, 1.f, false);
 					FinishAction();
-				}
+				}*/
 			}
 		}
 		else {
@@ -371,12 +379,34 @@ void ABaseUnit::AttackActionHandler() {
 	}
 }
 
+bool ABaseUnit::CheckLineOfSight(AAIController* AIController, ABaseUnit* Enemy) {
+	FHitResult Hit;
+	FCollisionQueryParams Params;
+	TArray<AActor*> Actors;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABaseUnit::StaticClass(), Actors);
+	/*int teams = UUnitTracker::GetNumTeams();
+	for (int i = 0; i < teams; i++) {
+		TArray<ABaseUnit*> Units = UUnitTracker::GetTeamData(i).Units;
+		for (ABaseUnit* Unit : Units) {
+			Actors.Add(Unit);
+		}
+	}*/
+	Params.AddIgnoredActors(Actors);
+	GetWorld()->LineTraceSingleByChannel(Hit, GetActorLocation(), Enemy->GetActorLocation(), ECC_Visibility, Params);
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, GetDebugName(Hit.GetActor()));
+	return Hit.GetActor() == nullptr;
+
+	//return AIController->LineOfSightTo(Enemy, GetActorLocation());
+}
+
 void ABaseUnit::FinishRemoveEnemy(FAction Action) {
-	UAttackActionData* Data = Cast<UAttackActionData>(Action.ActionData);
-	if (Data != nullptr) {
-		ABaseUnit* Enemy = Data->GetEnemy();
-		if (Enemy != nullptr && Enemy->IsValidLowLevel() && !Enemy->IsDead()) {
-			RemoveEnemyFromList(Enemy);
+	if (Cast<UAttackActionData>(Action.ActionData)) {
+		UAttackActionData* Data = Cast<UAttackActionData>(Action.ActionData);
+		if (Data != nullptr) {
+			ABaseUnit* Enemy = Data->GetEnemy();
+			if (Enemy != nullptr && Enemy->IsValidLowLevel() && !Enemy->IsDead()) {
+				RemoveEnemyFromList(Enemy);
+			}
 		}
 	}
 }
@@ -514,7 +544,7 @@ FVector ABaseUnit::Rec_CalculateLocationInRange(FVector EnemyLocation, ABaseUnit
 		if (ValidateLocationInRange(Enemy, Final, NavSys, AgentProps, &ProjectedLocation, AIController, Hit)) {
 			return Final;
 		}
-		else if (FMath::Abs(NewAngle - OriginalAngle) < Interval) { return NULL_VECTOR; } //Prevent infinite recursion by stopping when completing a full circle
+		else if (FMath::Abs(NewAngle - OriginalAngle) < Interval || NewAngle >= (OriginalAngle + (UKismetMathLibrary::GetPI()*2)) || NewAngle <= (OriginalAngle - (UKismetMathLibrary::GetPI() * 2))) { return NULL_VECTOR; } //Prevent infinite recursion by stopping when completing a full circle
 		else {
 			//Check Next Angle (Recursive Case)
 			return Rec_CalculateLocationInRange(EnemyLocation, Enemy, NewAngle, Interval, bLeft, OriginalAngle);
@@ -526,7 +556,7 @@ FVector ABaseUnit::Rec_CalculateLocationInRange(FVector EnemyLocation, ABaseUnit
 bool ABaseUnit::ValidateLocationInRange(ABaseUnit* Enemy, FVector Final, UNavigationSystemV1* NavSys, const FNavAgentProperties& AgentProps, FNavLocation* ProjectedLocation, AAIController* AIController, FHitResult Hit) {
 	if (FAISystem::IsValidLocation(Final) == true
 		&& NavSys->ProjectPointToNavigation(Final, *ProjectedLocation, INVALID_NAVEXTENT, &AgentProps)
-		&& !Cast<ABaseUnit>(Hit.GetActor())
+		//&& !Cast<ABaseUnit>(Hit.GetActor())
 		&& AIController->LineOfSightTo(Enemy, FVector(Final.X, Final.Y, Final.Z + GetCapsuleComponent()->GetScaledCapsuleHalfHeight()))
 		&& !(FVector::Dist(Final, Enemy->GetActorLocation()) > AttackRange || !Hit.bBlockingHit)
 		&& !(UKismetMathLibrary::NearlyEqual_FloatFloat(Final.X, 0, 0.5) && UKismetMathLibrary::NearlyEqual_FloatFloat(Final.Y, 0, 0.5) && UKismetMathLibrary::NearlyEqual_FloatFloat(Final.Z, 0, 0.5))) {
@@ -585,6 +615,7 @@ void ABaseUnit::Die() {
 void ABaseUnit::Die_InvalidateAndDestroyAI() {
 
 	AAIController* AIController = Cast<AAIController>(GetController());
+	CurrentAction = FAction();
 	if (AIController != nullptr) {
 		//Destroy AIController and stop any active movement actions
 		AIController->StopMovement();
@@ -646,7 +677,7 @@ void ABaseUnit::FinishMovement(const FPathFollowingResult& Result) {
 		GetWorld()->GetTimerManager().ClearTimer(CheckForCombatHandle);
 
 		//Check for a faild move
-		if (!Result.IsSuccess()) {
+		/*if (!Result.IsSuccess()) {
 			if (FailedMovementCount > MAX_MOVEMENT_ACTIONS) {
 				//If failure happens too many times delay whole AI system
 				GetWorld()->GetTimerManager().SetTimer(FailedMovementHandle, this, &ABaseUnit::FinishAction, FailedMovementDelay, false);
@@ -655,11 +686,13 @@ void ABaseUnit::FinishMovement(const FPathFollowingResult& Result) {
 				FailedMovementCount++;
 				PostMovementAction();
 			}
+			PostMovementAction();
 		}
 		else {
 			FailedMovementCount = 0;
 			PostMovementAction();
-		}
+		}*/
+		PostMovementAction();
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::SanitizeFloat(Result.Code));
 	}
 }
@@ -667,7 +700,7 @@ void ABaseUnit::FinishMovement(const FPathFollowingResult& Result) {
 void ABaseUnit::PostMovementAction() {
 	//Check for Cached action if this is a Range Move
 	if (CachedAttackAction.Action_Type == "ATTACK") {
-		check(HasAuthority())
+		check(HasAuthority());
 		bAttacking = false;
 		GetWorld()->GetTimerManager().ClearTimer(FailedMovementHandle);
 		CurrentAction = CachedAttackAction;

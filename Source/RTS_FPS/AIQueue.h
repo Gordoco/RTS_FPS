@@ -62,6 +62,8 @@ public:
 
 	void Empty();
 
+	FAction GetClosestAttackAction(FVector Location, int prio);
+
 	FString Debug_ListActions();
 
 	void SetOwner(AActor* in) { Owner = in; }
