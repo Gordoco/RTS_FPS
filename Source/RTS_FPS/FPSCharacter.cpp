@@ -20,12 +20,15 @@ AFPSCharacter::AFPSCharacter()
 
 	FPSCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("CAM"));
 	FPSCamera->SetupAttachment(RootComponent);
+	FPSCamera->SetIsReplicated(true);
 
 	ADSFPSCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("ADS_CAM"));
 	ADSFPSCamera->SetupAttachment(RootComponent);
 	ADSFPSCamera->SetActive(false);
+	ADSFPSCamera->SetIsReplicated(true);
 
 	ActiveCam = FPSCamera;
+	ActiveCam->SetIsReplicated(true);
 }
 
 void AFPSCharacter::SpawnOrderMarker_Implementation(FVector Location, ABaseUnit* Enemy) {
@@ -55,7 +58,7 @@ FHitResult AFPSCharacter::GetShotHit() {
 	if (GetWorld() != nullptr) {
 		FVector Location = FiringLocation->GetComponentLocation();
 		//IMPLEMENT FIRING SPREAD
-		FVector HitLocation = SpreadHitTransform(Location + (ActiveCam->GetForwardVector() * AttackRange));
+		FVector HitLocation = SpreadHitTransform(Location + (GetController()->GetControlRotation().Vector() * AttackRange));
 		GetWorld()->LineTraceSingleByChannel(Hit, Location, HitLocation, ECC_Camera);
 	}
 	return Hit;
@@ -65,10 +68,13 @@ FVector AFPSCharacter::SpreadHitTransform(FVector IdealHit) {
 	float tx = FMath::FRand();
 	float tz = FMath::FRand();
 
+	FVector Right = FRotator(GetController()->GetControlRotation().Pitch, GetController()->GetControlRotation().Yaw, GetController()->GetControlRotation().Roll + 90).Vector();
+	FVector Up = FRotator(GetController()->GetControlRotation().Pitch + 90, GetController()->GetControlRotation().Yaw, GetController()->GetControlRotation().Roll).Vector();;
+
 	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::SanitizeFloat(tx) + " | " + FString::SanitizeFloat(tz));
 	return (IdealHit
-		+ (ActiveCam->GetRightVector() * ((-1 * SpreadVal * tx) + (SpreadVal * (1-tx))))
-		+ (ActiveCam->GetUpVector() * ((-1 * SpreadVal * tz) + (SpreadVal * (1 - tz)))));
+		+ (Right * ((-1 * SpreadVal * tx) + (SpreadVal * (1-tx))))
+		+ (Up * ((-1 * SpreadVal * tz) + (SpreadVal * (1 - tz)))));
 }
 
 //Can add other validation code here
@@ -186,10 +192,10 @@ void AFPSCharacter::UpdateSpeed_Implementation(float newSpeed) {
 
 void AFPSCharacter::Slide() {
 	if (HasAuthority()) {
-		Slide_Server();
+		//Slide_Server();
 	}
 	else {
-		Slide_Client();
+		//Slide_Client();
 	}
 }
 

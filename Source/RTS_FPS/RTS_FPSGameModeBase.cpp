@@ -73,7 +73,6 @@ void ARTS_FPSGameModeBase::StartGame() {
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ARTSPlayerController::StaticClass(), PlayerControllerActors);
 	GetWorld()->GetTimerManager().ClearTimer(CheckForPlayersLoadedHandle);
 	GetWorld()->GetTimerManager().ClearTimer(TimeoutHandle);
-	bStarted = true;
 	for (AActor* ActorPC : PlayerControllerActors) {
 		ARTSPlayerController* PC = Cast<ARTSPlayerController>(ActorPC);
 		if (PC != nullptr) {
@@ -87,6 +86,7 @@ void ARTS_FPSGameModeBase::StartGame() {
 		}
 	}
 	Data.Empty();
+	bStarted = true;
 }
 
 void ARTS_FPSGameModeBase::TimeoutGame() {

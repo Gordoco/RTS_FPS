@@ -122,6 +122,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Match")
 		bool CreateMatch(FString MapName, int NumPlayers, bool bListen);
 
+	UFUNCTION(BlueprintPure, Category = "Match")
+		bool GetStarted() { return bStarted; }
+
 	bool RequestMatchPosition(FMatchRequest inRequest, APlayerController* RequestingPC);
 
 	TArray<FMatchRequest> GetMatchRequests() { return CurrRequests; }
