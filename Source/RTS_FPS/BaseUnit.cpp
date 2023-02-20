@@ -651,7 +651,7 @@ void ABaseUnit::Die_ClearTimers() {
 }
 
 void ABaseUnit::Die_Visuals_Implementation() {
-	//Clientside Collision functionality (To stop potential jitters on clientside
+	//Clientside Collision functionality (To stop potential jitters on clientside)
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
@@ -676,7 +676,7 @@ void ABaseUnit::FinishMovement(const FPathFollowingResult& Result) {
 		GetWorld()->GetTimerManager().ClearTimer(CheckIfInRangeHandle);
 		GetWorld()->GetTimerManager().ClearTimer(CheckForCombatHandle);
 
-		//Check for a faild move
+		//Check for a failed move
 		/*if (!Result.IsSuccess()) {
 			if (FailedMovementCount > MAX_MOVEMENT_ACTIONS) {
 				//If failure happens too many times delay whole AI system
