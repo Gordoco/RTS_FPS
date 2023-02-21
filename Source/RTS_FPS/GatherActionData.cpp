@@ -3,3 +3,6 @@
 
 #include "GatherActionData.h"
 
+UGatherActionData::UGatherActionData() {
+	internalName = TEXT("GATHER");
+}

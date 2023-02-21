@@ -18,16 +18,14 @@ ABaseResource::ABaseResource()
 
 void ABaseResource::GenerateMeshes() {
 	MasterMesh->ClearInstances();
-	FVector2D StartingGridPoint = FVector2D(GetActorLocation().X - SpawningRadius, GetActorLocation().Y + SpawningRadius);
+	FVector2D StartingGridPoint = FVector2D(-SpawningRadius, -SpawningRadius);
 
 	TArray<FVector2D> GridPoints;
-	int NumPoints = (SpawningRadius*2) / MeshRadialDistance;
+	int NumPoints = (SpawningRadius * 2) / MeshRadialDistance;
 	for (int i = 0; i < NumPoints; i++) {
 		for (int k = 0; k < NumPoints; k++) {
 			FVector2D PotentialPoint = FVector2D(StartingGridPoint.X + (MeshRadialDistance * k), StartingGridPoint.Y + (MeshRadialDistance * i));
-			if (FVector2D::Distance(PotentialPoint, FVector2D(GetActorLocation().X, GetActorLocation().Y)) <= SpawningRadius) {
-				GridPoints.Add(PotentialPoint);
-			}
+			GridPoints.Add(PotentialPoint);
 		}
 	}
 
@@ -44,7 +42,7 @@ void ABaseResource::GenerateMeshes() {
 
 		float x = GridPoints[index].X;
 		float y = GridPoints[index].Y;
-		float z = GetActorLocation().Z;
+		float z = 0;
 
 		GridPoints.RemoveAt(index);
 
@@ -63,4 +61,22 @@ void ABaseResource::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+}
+
+FTransform ABaseResource::GetGatherLocation(FVector UnitLocation) {
+	float MinDist = 999999999999999.f;
+	FTransform CurrTransform;
+
+	for (int i = 0; i < MasterMesh->GetInstanceCount(); i++) {
+		FTransform temp;
+		MasterMesh->GetInstanceTransform(i, temp);
+
+		float Dist = FVector::Dist(UnitLocation, temp.GetTranslation());
+		if (Dist < MinDist) {
+			MinDist = Dist;
+			CurrTransform = temp;
+		}
+	}
+
+	return CurrTransform;
 }

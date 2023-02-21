@@ -58,6 +58,21 @@ void ARTSPawn::Init() {
 	}
 }
 
+bool ARTSPawn::AddResources_Validate(EResourceType Type, float AddVal) {
+	return true;
+}
+
+void ARTSPawn::AddResources_Implementation(EResourceType Type, float AddVal) {
+	switch (Type) {
+	case ERT_Metal:
+		Metal += AddVal;
+		break;
+	case ERT_Energy:
+		Energy += AddVal;
+		break;
+	}
+}
+
 bool ARTSPawn::AttemptToBuild(TSubclassOf<ABaseBuilding> BuildingClass) {
 	/*
 	To Do: Add valdation code for building cost, already placing a structure, valid building subclass, etc.
@@ -84,6 +99,7 @@ void ARTSPawn::Server_CreateBuilding_Implementation(TSubclassOf<ABaseBuilding> B
 		if (Server_CurrentBuilding != nullptr) {
 			Server_CurrentBuilding->SetActorHiddenInGame(true);
 			Server_CurrentBuilding->SetTeam(Team);
+			Server_CurrentBuilding->OwningPlayerPawn = this;
 			BuildingMesh = Server_CurrentBuilding->GetFinalMesh();
 			//GEngine->AddOnScreenDebugMessage(72, 5.f, FColor::Green, "SERVER: Pre-Spawned Building");
 			CurrentTemplateClass = Server_CurrentBuilding->TemplateClass;

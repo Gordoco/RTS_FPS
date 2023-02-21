@@ -23,6 +23,9 @@ public:
 
 	UStaticMesh* GetFinalMesh() { return FinalMesh; }
 
+	UPROPERTY(Replicated)
+		AActor* OwningPlayerPawn;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

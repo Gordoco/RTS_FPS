@@ -122,7 +122,7 @@ public:
 
 	void AddAction(FAction Action);
 
-	void FinishMovement(const FPathFollowingResult& Result);
+	virtual void FinishMovement(const FPathFollowingResult& Result);
 
 	bool OutOfActions() { return ActionQue->IsEmpty(); }
 
@@ -197,6 +197,8 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "SERVER_Actions")
 		FAction CurrentAction = FAction();
 
+	void FinishAction();
+
 private:
 	static const int MAX_MOVEMENT_ACTIONS = 10;
 
@@ -211,8 +213,6 @@ private:
 	void RecieveAction();
 
 	void CheckNewActionPrio();
-
-	void FinishAction();
 
 	void PostMovementAction();
 

@@ -61,6 +61,9 @@ public:
 
 	void ShouldTakeInput(bool bInput) { bShouldMove = bInput; }
 
+	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Resources")
+		void AddResources(EResourceType Type, float AddVal);
+
 private:
 	//UPROPERTY TO AVOID GARBAGE COLLECTION. SHOULD NEVER BE REFERENCED OUTSIDE OF DRAWSELECTIONBOX()
 	UPROPERTY()
@@ -69,6 +72,10 @@ private:
 	FVector StartLocation;
 
 	FVector CachedMovementDirection = FVector();
+
+	float Energy = 0.f;
+
+	float Metal = 0.f;
 
 	UPROPERTY(ReplicatedUsing = OnRep_SetLocation)
 		FVector PlayerLocation;

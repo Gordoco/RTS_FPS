@@ -22,6 +22,7 @@ void ABaseBuilding::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutL
 	DOREPLIFETIME(ABaseBuilding, CurrentMesh);
 	DOREPLIFETIME(ABaseBuilding, bFinishedConstruction);
 	DOREPLIFETIME(ABaseBuilding, Team);
+	DOREPLIFETIME(ABaseBuilding, OwningPlayerPawn);
 }
 
 void ABaseBuilding::Selected() {

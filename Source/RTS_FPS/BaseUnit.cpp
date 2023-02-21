@@ -159,11 +159,13 @@ void ABaseUnit::RecieveAction() {
 						ActionQue->Insert_NoCheck(CurrentAction);
 						CurrentAction = temp;
 						RunAction();
+						BP_SwappedActions();
 					}
 				}
 				else {
 					CurrentAction = ActionQue->DeleteMax();
 					RunAction();
+					BP_SwappedActions();
 				}
 			}
 			else {
@@ -304,7 +306,6 @@ void ABaseUnit::CheckAction() {
 	else {
 		CheckNewActionPrio();
 	}
-	BP_SwappedActions();
 }
 
 void ABaseUnit::MovementActionHandler() {
@@ -668,6 +669,7 @@ void ABaseUnit::FinishAction() {
 	CurrentAction = FAction();
 	CachedAttackAction = FAction();
 	bFinishedAction = true;
+	BP_SwappedActions();
 	//RecieveAction();
 }
 
