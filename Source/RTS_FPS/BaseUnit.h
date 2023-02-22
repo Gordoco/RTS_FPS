@@ -133,6 +133,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Brain")
 		UBaseBrain* GetBrain() { return Brain; }
 
+	int GetTrainingTime() { return TrainingTime; }
+
+	int GetTrainingCost_Energy() { return TrainingCost_Energy; }
+
+	int GetTrainingCost_Metal() { return TrainingCost_Metal; }
+
 
 protected:
 	// Called when the game starts or when spawned
@@ -193,6 +199,15 @@ protected:
 
 	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
 		float StopRange = 2000.f;
+
+	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
+		int TrainingTime = 0;
+
+	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
+		int TrainingCost_Energy = 0;
+
+	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
+		int TrainingCost_Metal = 0;
 
 	UPROPERTY(BlueprintReadOnly, Category = "SERVER_Actions")
 		FAction CurrentAction = FAction();

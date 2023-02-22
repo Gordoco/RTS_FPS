@@ -4,10 +4,33 @@
 
 #include "CoreMinimal.h"
 #include "BaseBuilding.h"
+#include "Blueprint/UserWidget.h"
 #include "PaperSpriteComponent.h"
 #include "BaseProductionBuilding.generated.h"
 
+//Forward Declarations
 class ABaseUnit;
+
+USTRUCT() struct FUnitProduction
+{
+	GENERATED_BODY()
+
+public:
+
+	int TrainingTime;
+	ABaseUnit* TrainedUnit;
+
+	FUnitProduction(ABaseUnit* inUnit, float inTime) {
+		TrainingTime = inTime;
+		TrainedUnit = inUnit;
+	}
+
+	FUnitProduction() {
+		TrainingTime = 0.f;
+		TrainedUnit = nullptr;
+	}
+
+};
 
 /**
  * 
@@ -26,11 +49,17 @@ private:
 	UFUNCTION()
 		void SetRallyPointPosition();
 
-	TArray<ABaseUnit*> ProductionQueue;
+	UPROPERTY(Replicated)
+		TArray<FUnitProduction> ProductionQueue;
 
-	ABaseUnit* Pop();
+	FUnitProduction Pop();
 
-	void Push(ABaseUnit* Unit);
+	FUnitProduction Peek();
+
+	void Push(ABaseUnit* Unit, int time);
+
+	UPROPERTY()
+		UUserWidget* TrainingWidgetRef;
 	
 public:
 	virtual void Selected() override;
@@ -41,8 +70,14 @@ public:
 
 	void GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const override;
 
-	UFUNCTION(BlueprintCallable, Category = "Training")
+	UFUNCTION(Server, Unreliable, WithValidation, BlueprintCallable, Category = "Training")
 		void RecruitUnit(TSubclassOf<ABaseUnit> UnitType);
+
+	UFUNCTION(Server, Unreliable, WithValidation, BlueprintCallable, Category = "Training")
+		void CancelTraining();
+
+	UFUNCTION(BlueprintPure, Category = "Training")
+		float GetTrainingProgress();
 
 protected:
 	virtual void BeginPlay() override;
@@ -53,5 +88,21 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Rally")
 		UPaperSpriteComponent* RallySprite;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Training")
+		UPaperSpriteComponent* SpawnLocationSprite;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Training")
+		TSubclassOf<UUserWidget> WidgetClass;
+
+	FTimerHandle TrainingHandle;
+	bool bTraining = false;
+
+	UPROPERTY(Replicated)
+		int TrainingCount = 0;
+
+	UFUNCTION()
+		void UpdateTrainingProgress();
+
+	void StartTraining();
 
 };
