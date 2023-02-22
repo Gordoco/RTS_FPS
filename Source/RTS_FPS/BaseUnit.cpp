@@ -183,17 +183,17 @@ void ABaseUnit::AddMovementAction(FVector Location, int prio, float inAcceptable
 		if (Data->IsValidLowLevel()) {
 
 			//VERIFY LOCATION
-			if (VerifyMoveLocation(Location, prio, inAcceptableRadius)) {
+			//if (VerifyMoveLocation(Location, prio, inAcceptableRadius)) {
 				AddMovementAction_Helper(Data, Location, prio, inAcceptableRadius);
 				LastMoveLocation = Location;
-			}
+			/* }
 			else {
 				FNavLocation outLoc;
 				UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
 				NavSys->GetRandomReachablePointInRadius(GetActorLocation(), 50.f, outLoc);
 				LastMoveLocation = FVector();
 				AddMovementAction_Helper(Data, outLoc.Location, prio, inAcceptableRadius);
-			}
+			}*/
 		}
 	}
 }

@@ -7,6 +7,8 @@
 #include "PaperSpriteComponent.h"
 #include "BaseProductionBuilding.generated.h"
 
+class ABaseUnit;
+
 /**
  * 
  */
@@ -18,12 +20,17 @@ class RTS_FPS_API ABaseProductionBuilding : public ABaseBuilding
 	ABaseProductionBuilding();
 
 private:
-
 	UPROPERTY(ReplicatedUsing = "SetRallyPointPosition")
 		FVector RallyPoint;
 
 	UFUNCTION()
-	void SetRallyPointPosition();
+		void SetRallyPointPosition();
+
+	TArray<ABaseUnit*> ProductionQueue;
+
+	ABaseUnit* Pop();
+
+	void Push(ABaseUnit* Unit);
 	
 public:
 	virtual void Selected() override;
@@ -34,8 +41,10 @@ public:
 
 	void GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const override;
 
-protected:
+	UFUNCTION(BlueprintCallable, Category = "Training")
+		void RecruitUnit(TSubclassOf<ABaseUnit> UnitType);
 
+protected:
 	virtual void BeginPlay() override;
 
 	UFUNCTION(BlueprintPure, Category = "Rally")

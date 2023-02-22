@@ -23,7 +23,7 @@ public:
 
 	UStaticMesh* GetFinalMesh() { return FinalMesh; }
 
-	UPROPERTY(Replicated)
+	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Player")
 		AActor* OwningPlayerPawn;
 
 protected:

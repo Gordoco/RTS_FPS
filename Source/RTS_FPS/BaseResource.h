@@ -21,7 +21,8 @@ UENUM()
 enum EResourceType
 {
 	ERT_Metal,
-	ERT_Energy
+	ERT_Energy,
+	ERT_None
 };
 
 UCLASS()

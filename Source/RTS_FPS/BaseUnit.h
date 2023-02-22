@@ -120,7 +120,7 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	void AddAction(FAction Action);
+	virtual void AddAction(FAction Action);
 
 	virtual void FinishMovement(const FPathFollowingResult& Result);
 

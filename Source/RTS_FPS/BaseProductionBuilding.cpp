@@ -2,6 +2,7 @@
 
 
 #include "BaseProductionBuilding.h"
+#include "BaseUnit.h"
 
 ABaseProductionBuilding::ABaseProductionBuilding() {
 	RallySprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("RALLYSPRITE"));
@@ -41,4 +42,16 @@ void ABaseProductionBuilding::Server_SetRallyPoint(FVector Location) {
 	if (HasAuthority()) {
 		SetRallyPointPosition();
 	}
+}
+
+ABaseUnit* ABaseProductionBuilding::Pop() {
+	return nullptr;
+}
+
+void ABaseProductionBuilding::Push(ABaseUnit* Unit) {
+
+}
+
+void ABaseProductionBuilding::RecruitUnit(TSubclassOf<ABaseUnit> UnitType) {
+
 }

@@ -3,6 +3,7 @@
 
 #include "BaseResourceUnit.h"
 #include "GatherActionData.h"
+#include "Engine.h"
 #include "UnitTracker.h"
 
 ABaseResourceUnit::ABaseResourceUnit() {
@@ -58,6 +59,7 @@ void ABaseResourceUnit::AddGatherAction(ABaseResource* Resource, int prio) {
 		if (Data != nullptr) {
 			check(Data->IsValidLowLevel());
 			if (Data->IsValidLowLevel()) {
+				//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "TEST: GATHER ACTION ADDED");
 				Data->SetResource(Resource);
 				AddAction(FAction(Data, prio));
 			}
@@ -69,12 +71,10 @@ void ABaseResourceUnit::RunAction() {
 	Super::RunAction();
 	check(HasAuthority());
 	if (HasAuthority()) {
+		GetWorld()->GetTimerManager().ClearTimer(GatherHandle);
 		if (CurrentAction.ActionData != nullptr) {
 			if (CurrentAction.Action_Type == "GATHER") {
 				GatherActionHandler();
-			}
-			else {
-				GetWorld()->GetTimerManager().ClearTimer(GatherHandle);
 			}
 		}
 	}
@@ -85,12 +85,12 @@ void ABaseResourceUnit::GatherActionHandler() {
 	if (Data != nullptr) {
 		AAIController* AIController = Cast<AAIController>(GetController());
 		if (AIController != nullptr && AIController->IsValidLowLevel()) {
+			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, "TEST: GATHER ACTION RAN");
 			FTransform Transform = Data->GetResource()->GetGatherLocation(GetActorLocation());
 			AIController->MoveToLocation(Transform.GetTranslation(), 50.f, true, true, true, true, false);
 			bMovingToGather = true;
 			GatherRotation = Transform.Rotator();
 			CurrResource = Data->GetResource();
-			TypeCarried = Data->GetResource()->GetResourceType();
 		}
 		else {
 			FinishAction();
@@ -102,13 +102,21 @@ void ABaseResourceUnit::GatherActionHandler() {
 }
 
 void ABaseResourceUnit::FinishMovement(const FPathFollowingResult& Result) {
+	check(HasAuthority());
+	if (!HasAuthority()) return;
+
+	//if (CurrResource != nullptr) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, GetDebugName(CurrResource));
+	//if (CurrDropOff != nullptr) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, CurrDropOff->GetDropOffLocation().ToString());
+
 	if (bMovingToGather && Result.IsSuccess()) {
 		SetActorRotation(GatherRotation);
 		GetWorld()->GetTimerManager().SetTimer(GatherHandle, this, &ABaseResourceUnit::GatherIterator, 1.f, true);
 	}
-	else if (bMovingToDropOff && Result.IsSuccess()) {
-		GetClosestDropOffPoint()->DropOffResources(TypeCarried, InternalResourceStorage);
+	else if (bMovingToDropOff && Result.IsSuccess() && CurrDropOff != nullptr) {
+		CurrDropOff->DropOffResources(TypeCarried, InternalResourceStorage);
 		InternalResourceStorage = 0.f;
+		TypeCarried = ERT_None;
+		BP_UpdateResourceCounter();
 		if (CurrResource != nullptr) {
 			AddGatherAction(CurrResource, UNIT_RESPONSE_PRIORITY);
 		}
@@ -120,28 +128,41 @@ void ABaseResourceUnit::FinishMovement(const FPathFollowingResult& Result) {
 
 ABaseResourceDropOff* ABaseResourceUnit::GetClosestDropOffPoint() {
 	float MinDistance = (float)INT32_MAX;
-	ABaseResourceDropOff* CurrDropOff = nullptr;
-
-	for (ABaseResourceDropOff* DropOff : PotentialDropOffs) {
-		float Dist = FVector::Dist(DropOff->GetActorLocation(), GetActorLocation());
+	TArray<AActor*> PotentialDropOffs;
+	ABaseResourceDropOff* ClosestDropOff = nullptr;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABaseResourceDropOff::StaticClass(), PotentialDropOffs);
+	for (AActor* DropOff : PotentialDropOffs) {
+		if (DropOff == nullptr) continue;
+		ABaseResourceDropOff* DropOff_Casted = Cast<ABaseResourceDropOff>(DropOff);
+		if (DropOff_Casted->GetTeam() != Team) continue;
+		float Dist = FVector::Dist(DropOff_Casted->GetActorLocation(), GetActorLocation());
 		if (Dist < MinDistance) {
-			CurrDropOff = DropOff;
+			ClosestDropOff = DropOff_Casted;
 			MinDistance = Dist;
 		}
 	}
-
-	return CurrDropOff;
+	return ClosestDropOff;
 }
 
 void ABaseResourceUnit::GatherIterator() {
 	if (CurrResource != nullptr) {
+		if (TypeCarried != CurrResource->GetResourceType()) InternalResourceStorage = 0;
+		TypeCarried = CurrResource->GetResourceType();
 		InternalResourceStorage = FMath::Clamp(InternalResourceStorage + CurrResource->GetGatherAmount(), 0.f, MaxResources);
+		BP_UpdateResourceCounter();
 		if (InternalResourceStorage == MaxResources) {
 			GetWorld()->GetTimerManager().ClearTimer(GatherHandle);
-			AddMovementAction(GetClosestDropOffPoint()->GetActorLocation(), UNIT_RESPONSE_PRIORITY, 50.f);
+			CurrDropOff = GetClosestDropOffPoint();
+			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Pre Dropoff Valid");
+			if (CurrDropOff == nullptr) return;
+			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Post Dropoff Valid");
+			bMovingToDropOff = true;
+			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Should Move To Drop Off");
+			AddMovementAction(CurrDropOff->GetDropOffLocation(), UNIT_RESPONSE_PRIORITY, 50.f);
 		}
 	}
 	else {
+		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Curr Resource Null");
 		GetWorld()->GetTimerManager().ClearTimer(GatherHandle);
 	}
 }

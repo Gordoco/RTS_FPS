@@ -22,9 +22,10 @@ public:
 
 	virtual void FinishMovement(const FPathFollowingResult& Result) override;
 
-	void GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const override;
+	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	void AddResourceDropOff(ABaseResourceDropOff* DropOff) { PotentialDropOffs.Add(DropOff); }
+	UFUNCTION(BlueprintPure, Category = "Resources")
+		float GetResources() { return InternalResourceStorage; }
 
 protected:
 	virtual void InitCheckForCombat() override;
@@ -40,17 +41,20 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Resources", Replicated)
 		float MaxResources = 100.f;
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "Resources")
+		void BP_UpdateResourceCounter();
+
 private:
 
-	TArray<ABaseResourceDropOff*> PotentialDropOffs;
-
 	ABaseResourceDropOff* GetClosestDropOffPoint();
+
+	ABaseResourceDropOff* CurrDropOff;
 
 	UPROPERTY(Replicated)
 		float InternalResourceStorage = 0.f;
 
 	UPROPERTY(Replicated)
-		TEnumAsByte<EResourceType> TypeCarried;
+		TEnumAsByte<EResourceType> TypeCarried = ERT_None;
 
 	FTimerHandle GatherHandle;
 

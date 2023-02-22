@@ -78,5 +78,5 @@ FTransform ABaseResource::GetGatherLocation(FVector UnitLocation) {
 		}
 	}
 
-	return CurrTransform;
+	return GetActorTransform();
 }

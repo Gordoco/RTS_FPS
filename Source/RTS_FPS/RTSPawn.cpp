@@ -37,6 +37,8 @@ void ARTSPawn::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifeti
 	DOREPLIFETIME(ARTSPawn, SelectedBuildings);
 	DOREPLIFETIME(ARTSPawn, bShiftPressed);
 	DOREPLIFETIME(ARTSPawn, Team);
+	DOREPLIFETIME(ARTSPawn, Energy);
+	DOREPLIFETIME(ARTSPawn, Metal);
 }
 
 // Called when the game starts or when spawned
@@ -58,11 +60,11 @@ void ARTSPawn::Init() {
 	}
 }
 
-bool ARTSPawn::AddResources_Validate(EResourceType Type, float AddVal) {
+/*bool ARTSPawn::AddResources_Validate(EResourceType Type, float AddVal) {
 	return true;
-}
+}*/
 
-void ARTSPawn::AddResources_Implementation(EResourceType Type, float AddVal) {
+void ARTSPawn::AddResources/*_Implementation*/(EResourceType Type, float AddVal) {
 	switch (Type) {
 	case ERT_Metal:
 		Metal += AddVal;
@@ -576,8 +578,11 @@ void ARTSPawn::OrderGather(ABaseResource* Resource) {
 	if (HasAuthority()) {
 		for (int i = 0; i < SelectedUnits.Num(); i++) {
 			if (SelectedUnits[i]->IsValidLowLevel() && !SelectedUnits[i]->IsDead()) {
+				SelectedUnits[i]->EmptyQue();
 				ABaseResourceUnit* Gatherer = Cast<ABaseResourceUnit>(SelectedUnits[i]);
+				//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "TEST: PLAYER ORDERED GATHERER");
 				if (Gatherer != nullptr) {
+					//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "TEST: GATHERER RECIEVED ORDER");
 					Gatherer->AddGatherAction(Resource, Gatherer->UNIT_ORDERED_PRIORITY);
 				}
 				else {
