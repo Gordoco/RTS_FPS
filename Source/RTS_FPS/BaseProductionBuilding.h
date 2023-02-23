@@ -4,12 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "BaseBuilding.h"
-#include "Blueprint/UserWidget.h"
+#include "BaseProductionWidget.h"
 #include "PaperSpriteComponent.h"
 #include "BaseProductionBuilding.generated.h"
 
 //Forward Declarations
 class ABaseUnit;
+class UBaseProductionWidget;
 
 USTRUCT() struct FUnitProduction
 {
@@ -59,7 +60,7 @@ private:
 	void Push(ABaseUnit* Unit, int time);
 
 	UPROPERTY()
-		UUserWidget* TrainingWidgetRef;
+		UBaseProductionWidget* TrainingWidgetRef = nullptr;
 	
 public:
 	virtual void Selected() override;
@@ -92,7 +93,7 @@ protected:
 		UPaperSpriteComponent* SpawnLocationSprite;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Training")
-		TSubclassOf<UUserWidget> WidgetClass;
+		TSubclassOf<UBaseProductionWidget> WidgetClass;
 
 	FTimerHandle TrainingHandle;
 	bool bTraining = false;

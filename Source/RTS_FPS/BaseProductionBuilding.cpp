@@ -3,6 +3,7 @@
 
 #include "BaseProductionBuilding.h"
 #include "Kismet/GameplayStatics.h"
+#include "BaseProductionBuilding.h"
 #include "RTSPawn.h"
 #include "BaseResource.h"
 #include "BaseUnit.h"
@@ -42,12 +43,13 @@ void ABaseProductionBuilding::Selected() {
 	if (TrainingWidgetRef == nullptr) {
 		if (OwningPlayerPawn == nullptr) return;
 
-		if (!Cast<APawn>(OwningPlayerPawn)) return;
+		if (Cast<APawn>(OwningPlayerPawn) == nullptr) return;
 		APawn* PlayerPawn = Cast<APawn>(OwningPlayerPawn);
 
-		if (!Cast<APlayerController>(PlayerPawn->GetController())) return;
+		if (Cast<APlayerController>(PlayerPawn->GetController()) == nullptr) return;
 		APlayerController* PC = Cast<APlayerController>(PlayerPawn->GetController());
-		TrainingWidgetRef = CreateWidget<UUserWidget>(PC, WidgetClass);
+		TrainingWidgetRef = CreateWidget<UBaseProductionWidget>(PC, WidgetClass);
+		TrainingWidgetRef->OwningBuilding = this;
 	}
 	TrainingWidgetRef->AddToViewport(9999); //Render On Top
 }
@@ -88,11 +90,10 @@ bool ABaseProductionBuilding::RecruitUnit_Validate(TSubclassOf<ABaseUnit> UnitTy
 
 void ABaseProductionBuilding::RecruitUnit_Implementation(TSubclassOf<ABaseUnit> UnitType) {
 	if (OwningPlayerPawn == nullptr) return;
-	if (!Cast<ARTSPawn>(OwningPlayerPawn)) return;
+	if (Cast<ARTSPawn>(OwningPlayerPawn) == nullptr) return;
 	ARTSPawn* RTSPawn = Cast<ARTSPawn>(OwningPlayerPawn);
 
 	ABaseUnit* NewUnit = GetWorld()->SpawnActorDeferred<ABaseUnit>(UnitType, FTransform::Identity);
-
 	if (RTSPawn->GetEnergy() < NewUnit->GetTrainingCost_Energy() || RTSPawn->GetMetal() < NewUnit->GetTrainingCost_Metal()) return;
 	RTSPawn->AddResources(ERT_Energy, -NewUnit->GetTrainingCost_Energy());
 	RTSPawn->AddResources(ERT_Metal, -NewUnit->GetTrainingCost_Metal());
@@ -108,6 +109,7 @@ void ABaseProductionBuilding::UpdateTrainingProgress() {
 	UGameplayStatics::FinishSpawningActor(Trained.TrainedUnit, SpawnLocationSprite->GetComponentTransform());
 	Trained.TrainedUnit->AddMovementAction(GetRallyPoint(), Trained.TrainedUnit->UNIT_RESPONSE_PRIORITY, 50.f);
 	GetWorld()->GetTimerManager().ClearTimer(TrainingHandle);
+	bTraining = false;
 	StartTraining();
 }
 
@@ -141,6 +143,6 @@ void ABaseProductionBuilding::CancelTraining_Implementation() {
 }
 
 float ABaseProductionBuilding::GetTrainingProgress() {
-	if (!bTraining) return -1.f;
+	if (!bTraining) return 0.f;
 	return (float)TrainingCount / (float)Peek().TrainingTime;
 }
