@@ -12,6 +12,7 @@
 // Sets default values
 ABaseUnit::ABaseUnit()
 {
+	//if (bLightweightSpawn) return;
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
 	AIControllerClass = ABaseUnitController::StaticClass();
@@ -32,6 +33,7 @@ ABaseUnit::ABaseUnit()
 // Called when the game starts or when spawned
 void ABaseUnit::BeginPlay()
 {
+	//if (bLightweightSpawn) return;
 	Super::BeginPlay();
 	//Register Units and Players
 	if (HasAuthority()) {
@@ -70,6 +72,8 @@ void ABaseUnit::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifet
 	DOREPLIFETIME(ABaseUnit, AttackSpeed);
 	DOREPLIFETIME(ABaseUnit, Team);
 	DOREPLIFETIME(ABaseUnit, bAttacking);
+	DOREPLIFETIME(ABaseUnit, bAttacking);
+	DOREPLIFETIME(ABaseUnit, TrainingInfo);
 }
 
 //Called from all network roles

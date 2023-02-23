@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "BaseUnit.h"
 #include "BaseProductionWidget.generated.h"
 
 class ABaseProductionBuilding;
@@ -20,4 +21,7 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Building")
 		ABaseProductionBuilding* OwningBuilding;
 
+protected:
+	UFUNCTION(BlueprintPure, Category = "Training")
+		FUnitInfo GetUnitInfo(TSubclassOf<ABaseUnit> UnitType);
 };

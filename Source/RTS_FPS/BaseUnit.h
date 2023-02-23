@@ -14,6 +14,32 @@
 #include "Navigation/PathFollowingComponent.h"
 #include "BaseUnit.generated.h"
 
+USTRUCT(BlueprintType) struct FUnitInfo
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
+		int TrainingTime;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
+		int TrainingCost_Energy;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
+		int TrainingCost_Metal;
+
+	FUnitInfo() {
+		TrainingTime = 0;
+		TrainingCost_Energy = 0;
+		TrainingCost_Metal = 0;
+	}
+
+	FUnitInfo(int time, int energy, int metal) {
+		TrainingTime = time;
+		TrainingCost_Energy = energy;
+		TrainingCost_Metal = metal;
+	}
+};
+
 UCLASS()
 class RTS_FPS_API ABaseUnit : public ACharacter
 {
@@ -133,13 +159,15 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Brain")
 		UBaseBrain* GetBrain() { return Brain; }
 
-	int GetTrainingTime() { return TrainingTime; }
+	int GetTrainingTime() { return TrainingInfo.TrainingTime; }
 
-	int GetTrainingCost_Energy() { return TrainingCost_Energy; }
+	int GetTrainingCost_Energy() { return TrainingInfo.TrainingCost_Energy; }
 
-	int GetTrainingCost_Metal() { return TrainingCost_Metal; }
+	int GetTrainingCost_Metal() { return TrainingInfo.TrainingCost_Metal; }
 
+	FUnitInfo GetTrainingInfo() { return TrainingInfo; }
 
+	//void SetLightweightSpawn() { bLightweightSpawn = true; }
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -201,13 +229,7 @@ protected:
 		float StopRange = 2000.f;
 
 	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
-		int TrainingTime = 0;
-
-	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
-		int TrainingCost_Energy = 0;
-
-	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Stats")
-		int TrainingCost_Metal = 0;
+		FUnitInfo TrainingInfo = FUnitInfo();
 
 	UPROPERTY(BlueprintReadOnly, Category = "SERVER_Actions")
 		FAction CurrentAction = FAction();
@@ -216,6 +238,8 @@ protected:
 
 private:
 	static const int MAX_MOVEMENT_ACTIONS = 10;
+
+	//bool bLightweightSpawn = false;
 
 	FAction CachedAttackAction = FAction();
 

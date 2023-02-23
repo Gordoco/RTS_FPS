@@ -4,6 +4,7 @@
 #include "RTSPlayerController.h"
 #include "RTSPawn.h"
 #include "GameFramework/PlayerState.h"
+#include "BaseBuilding.h"
 #include "Kismet/GameplayStatics.h"
 #include "Runtime/Core/Public/Misc/AssertionMacros.h"
 
@@ -45,10 +46,22 @@ void ARTSPlayerController::StartMatch() {
 			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "SPAWNING PAWNS");
 			SpawnControlledPawn();
 			CreatePlayerHUDs();
+			InitializeBuildings();
 		}
 	}
 	else {
 		Destroy();
+	}
+}
+
+void ARTSPlayerController::InitializeBuildings() {
+	TArray<AActor*> Out;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABaseBuilding::StaticClass(), Out);
+	for (AActor* Actor : Out) {
+		ABaseBuilding* Building = Cast<ABaseBuilding>(Actor);
+		if (Building->GetTeam() == Team) {
+			Building->OwningPlayerPawn = this->GetPawn();
+		}
 	}
 }
 

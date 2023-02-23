@@ -10,7 +10,6 @@
 
 //Forward Declarations
 class ABaseUnit;
-class UBaseProductionWidget;
 
 USTRUCT() struct FUnitProduction
 {
@@ -71,8 +70,11 @@ public:
 
 	void GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const override;
 
-	UFUNCTION(Server, Unreliable, WithValidation, BlueprintCallable, Category = "Training")
+	UFUNCTION(BlueprintCallable, Category = "Training")
 		void RecruitUnit(TSubclassOf<ABaseUnit> UnitType);
+
+	UFUNCTION(Server, Unreliable, WithValidation, BlueprintCallable, Category = "Training")
+		void Server_RecruitUnit(TSubclassOf<ABaseUnit> UnitType);
 
 	UFUNCTION(Server, Unreliable, WithValidation, BlueprintCallable, Category = "Training")
 		void CancelTraining();
@@ -96,7 +98,9 @@ protected:
 		TSubclassOf<UBaseProductionWidget> WidgetClass;
 
 	FTimerHandle TrainingHandle;
-	bool bTraining = false;
+
+	UPROPERTY(Replicated)
+		bool bTraining = false;
 
 	UPROPERTY(Replicated)
 		int TrainingCount = 0;

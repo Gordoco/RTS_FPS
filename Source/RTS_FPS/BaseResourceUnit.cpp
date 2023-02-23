@@ -153,16 +153,12 @@ void ABaseResourceUnit::GatherIterator() {
 		if (InternalResourceStorage == MaxResources) {
 			GetWorld()->GetTimerManager().ClearTimer(GatherHandle);
 			CurrDropOff = GetClosestDropOffPoint();
-			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Pre Dropoff Valid");
 			if (CurrDropOff == nullptr) return;
-			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Post Dropoff Valid");
 			bMovingToDropOff = true;
-			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Should Move To Drop Off");
 			AddMovementAction(CurrDropOff->GetDropOffLocation(), UNIT_RESPONSE_PRIORITY, 50.f);
 		}
 	}
 	else {
-		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Curr Resource Null");
 		GetWorld()->GetTimerManager().ClearTimer(GatherHandle);
 	}
 }

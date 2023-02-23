@@ -35,6 +35,7 @@ void ABaseProductionBuilding::GetLifetimeReplicatedProps(TArray< FLifetimeProper
 	DOREPLIFETIME(ABaseProductionBuilding, RallyPoint);
 	DOREPLIFETIME(ABaseProductionBuilding, TrainingCount);
 	DOREPLIFETIME(ABaseProductionBuilding, ProductionQueue);
+	DOREPLIFETIME(ABaseProductionBuilding, bTraining);
 }
 
 void ABaseProductionBuilding::Selected() {
@@ -84,30 +85,40 @@ void ABaseProductionBuilding::Push(ABaseUnit* Unit, int time) {
 	ProductionQueue.Add(FUnitProduction(Unit, time));
 }
 
-bool ABaseProductionBuilding::RecruitUnit_Validate(TSubclassOf<ABaseUnit> UnitType) {
+bool ABaseProductionBuilding::Server_RecruitUnit_Validate(TSubclassOf<ABaseUnit> UnitType) {
 	return true;
 }
 
-void ABaseProductionBuilding::RecruitUnit_Implementation(TSubclassOf<ABaseUnit> UnitType) {
+void ABaseProductionBuilding::Server_RecruitUnit_Implementation(TSubclassOf<ABaseUnit> UnitType) {
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Server_Recruit");
 	if (OwningPlayerPawn == nullptr) return;
 	if (Cast<ARTSPawn>(OwningPlayerPawn) == nullptr) return;
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Server_OwnerValid");
 	ARTSPawn* RTSPawn = Cast<ARTSPawn>(OwningPlayerPawn);
 
 	ABaseUnit* NewUnit = GetWorld()->SpawnActorDeferred<ABaseUnit>(UnitType, FTransform::Identity);
 	if (RTSPawn->GetEnergy() < NewUnit->GetTrainingCost_Energy() || RTSPawn->GetMetal() < NewUnit->GetTrainingCost_Metal()) return;
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, GetDebugName(NewUnit));
 	RTSPawn->AddResources(ERT_Energy, -NewUnit->GetTrainingCost_Energy());
 	RTSPawn->AddResources(ERT_Metal, -NewUnit->GetTrainingCost_Metal());
 
 	Push(NewUnit, NewUnit->GetTrainingTime());
 	StartTraining();
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Server_Training");
 }
 
+void ABaseProductionBuilding::RecruitUnit(TSubclassOf<ABaseUnit> UnitType) {
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Client_Recruit");
+	Server_RecruitUnit(UnitType);
+}
 void ABaseProductionBuilding::UpdateTrainingProgress() {
 	TrainingCount++;
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Server_TrainingCount");
 	if (Peek().TrainingTime > TrainingCount) return;
 	FUnitProduction Trained = Pop();
 	UGameplayStatics::FinishSpawningActor(Trained.TrainedUnit, SpawnLocationSprite->GetComponentTransform());
 	Trained.TrainedUnit->AddMovementAction(GetRallyPoint(), Trained.TrainedUnit->UNIT_RESPONSE_PRIORITY, 50.f);
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, GetDebugName(Trained.TrainedUnit));
 	GetWorld()->GetTimerManager().ClearTimer(TrainingHandle);
 	bTraining = false;
 	StartTraining();
@@ -121,6 +132,7 @@ void ABaseProductionBuilding::StartTraining() {
 	TrainingCount = 0;
 
 	GetWorld()->GetTimerManager().SetTimer(TrainingHandle, this, &ABaseProductionBuilding::UpdateTrainingProgress, 1, true);
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Server_TrainingStarted");
 }
 
 bool ABaseProductionBuilding::CancelTraining_Validate() {

@@ -17,6 +17,8 @@ FVector ABaseResourceDropOff::GetDropOffLocation() { return DropOffLocation->Get
 
 void ABaseResourceDropOff::DropOffResources(EResourceType Type, float Resources) {
 	check(HasAuthority());
+	if (!HasAuthority()) return;
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, GetDebugName(OwningPlayerPawn));
 	ARTSPawn* PlayerPawn = Cast<ARTSPawn>(OwningPlayerPawn);
 	if (PlayerPawn != nullptr && HasAuthority()) {
 		PlayerPawn->AddResources(Type, Resources);

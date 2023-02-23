@@ -8,6 +8,8 @@
 #include "TimerManager.h"
 #include "RTS_FPSGameModeBase.generated.h"
 
+class ARTSPlayerController;
+
 /**
  * 
  */
@@ -77,7 +79,6 @@ private:
 	/*
 	UNIT TESTS********************************************
 	*/
-
 
 #endif
 

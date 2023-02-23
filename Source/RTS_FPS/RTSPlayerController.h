@@ -50,6 +50,8 @@ private:
 	UPROPERTY(ReplicatedUsing = "Client_FinishInitLobby")
 		TArray<FMatchRequest> MatchRequests;
 
+	void InitializeBuildings();
+
 public:
 	UFUNCTION(BlueprintCallable, Category = "Lobby")
 		void InitLobby();

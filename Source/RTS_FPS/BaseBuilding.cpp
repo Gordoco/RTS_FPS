@@ -2,6 +2,9 @@
 
 
 #include "BaseBuilding.h"
+#include "RTS_FPSGameModeBase.h"
+#include "RTSPlayerController.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 ABaseBuilding::ABaseBuilding()
@@ -26,11 +29,11 @@ void ABaseBuilding::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutL
 }
 
 void ABaseBuilding::Selected() {
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Selected: " + GetDebugName(this));
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Selected: " + GetDebugName(this));
 }
 
 void ABaseBuilding::Deselected() {
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Deelected: " + GetDebugName(this));
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Deelected: " + GetDebugName(this));
 }
 
 void ABaseBuilding::ChangeMesh() {

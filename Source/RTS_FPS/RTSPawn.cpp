@@ -60,11 +60,10 @@ void ARTSPawn::Init() {
 	}
 }
 
-/*bool ARTSPawn::AddResources_Validate(EResourceType Type, float AddVal) {
-	return true;
-}*/
-
-void ARTSPawn::AddResources/*_Implementation*/(EResourceType Type, float AddVal) {
+void ARTSPawn::AddResources(EResourceType Type, float AddVal) {
+	check(HasAuthority());
+	if (!HasAuthority()) return;
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "ADDED (SERVER)");
 	switch (Type) {
 	case ERT_Metal:
 		Metal += AddVal;
