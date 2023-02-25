@@ -157,11 +157,11 @@ void ABaseProductionBuilding::CancelTraining_Implementation() {
 }
 
 float ABaseProductionBuilding::GetTrainingProgress() {
-	if (bTraining) GEngine->AddOnScreenDebugMessage(1, 5.f, FColor::Red, "bTraining == True");
-	else GEngine->AddOnScreenDebugMessage(1, 5.f, FColor::Red, "bTraining == False");
+	//if (bTraining) GEngine->AddOnScreenDebugMessage(1, 5.f, FColor::Red, "bTraining == True");
+	//else GEngine->AddOnScreenDebugMessage(1, 5.f, FColor::Red, "bTraining == False");
 
-	GEngine->AddOnScreenDebugMessage(2, 5.f, FColor::Red, "Training Time: " + FString::SanitizeFloat((float)CurrTrainingTime));
-	GEngine->AddOnScreenDebugMessage(3, 5.f, FColor::Red, "Training Count: " + FString::SanitizeFloat((float)TrainingCount));
+	//GEngine->AddOnScreenDebugMessage(2, 5.f, FColor::Red, "Training Time: " + FString::SanitizeFloat((float)CurrTrainingTime));
+	//GEngine->AddOnScreenDebugMessage(3, 5.f, FColor::Red, "Training Count: " + FString::SanitizeFloat((float)TrainingCount));
 
 	if (!bTraining) return 0.f;
 	if (CurrTrainingTime == 0) return 0.f;
