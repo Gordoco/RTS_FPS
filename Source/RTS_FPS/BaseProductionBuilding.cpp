@@ -34,6 +34,7 @@ void ABaseProductionBuilding::GetLifetimeReplicatedProps(TArray< FLifetimeProper
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ABaseProductionBuilding, RallyPoint);
 	DOREPLIFETIME(ABaseProductionBuilding, TrainingCount);
+	DOREPLIFETIME(ABaseProductionBuilding, CurrTrainingTime);
 	DOREPLIFETIME(ABaseProductionBuilding, ProductionQueue);
 	DOREPLIFETIME(ABaseProductionBuilding, bTraining);
 }
@@ -101,6 +102,7 @@ void ABaseProductionBuilding::Server_RecruitUnit_Implementation(TSubclassOf<ABas
 	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, GetDebugName(NewUnit));
 	RTSPawn->AddResources(ERT_Energy, -NewUnit->GetTrainingCost_Energy());
 	RTSPawn->AddResources(ERT_Metal, -NewUnit->GetTrainingCost_Metal());
+	CurrTrainingTime = NewUnit->GetTrainingTime();
 
 	Push(NewUnit, NewUnit->GetTrainingTime());
 	StartTraining();
@@ -155,6 +157,13 @@ void ABaseProductionBuilding::CancelTraining_Implementation() {
 }
 
 float ABaseProductionBuilding::GetTrainingProgress() {
+	if (bTraining) GEngine->AddOnScreenDebugMessage(1, 5.f, FColor::Red, "bTraining == True");
+	else GEngine->AddOnScreenDebugMessage(1, 5.f, FColor::Red, "bTraining == False");
+
+	GEngine->AddOnScreenDebugMessage(2, 5.f, FColor::Red, "Training Time: " + FString::SanitizeFloat((float)CurrTrainingTime));
+	GEngine->AddOnScreenDebugMessage(3, 5.f, FColor::Red, "Training Count: " + FString::SanitizeFloat((float)TrainingCount));
+
 	if (!bTraining) return 0.f;
-	return (float)TrainingCount / (float)Peek().TrainingTime;
+	if (CurrTrainingTime == 0) return 0.f;
+	return (float)TrainingCount / (float)CurrTrainingTime;
 }

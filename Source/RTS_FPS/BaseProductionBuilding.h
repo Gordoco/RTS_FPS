@@ -105,6 +105,9 @@ protected:
 	UPROPERTY(Replicated)
 		int TrainingCount = 0;
 
+	UPROPERTY(Replicated)
+		int CurrTrainingTime = 0;
+
 	UFUNCTION()
 		void UpdateTrainingProgress();
 
