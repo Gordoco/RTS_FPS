@@ -25,22 +25,19 @@ bool UAIQueue::IsEmpty() {
 
 //O(1)
 FAction UAIQueue::Peek() {
-	if (!IsEmpty()) {
-		return Queue[0];
-	}
-	return FAction();
+	if (IsEmpty()) return FAction();
+	return Queue[0];
 }
 
 //O(n)
 void UAIQueue::Empty() {
 	for (FAction Action : Queue) {
-		if (Action.Action_Type == "ATTACK") {
-			ABaseUnit* OwningUnit = Cast<ABaseUnit>(Owner);
-			UAttackActionData* Data = Cast<UAttackActionData>(Action.ActionData);
-			if (Data != nullptr && OwningUnit != nullptr) {
-				OwningUnit->RemoveEnemyFromList(Data->GetEnemy());
-			}
-		}
+		if (Action.Action_Type != "ATTACK") return;
+		ABaseUnit* OwningUnit = Cast<ABaseUnit>(Owner);
+		UAttackActionData* Data = Cast<UAttackActionData>(Action.ActionData);
+
+		if (Data == nullptr || OwningUnit == nullptr) return;
+		OwningUnit->RemoveEnemyFromList(Data->GetEnemy());
 	}
 	Queue.Empty();
 }
