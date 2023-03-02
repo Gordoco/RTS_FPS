@@ -73,7 +73,7 @@ FVector AFPSCharacter::SpreadHitTransform(FVector IdealHit) {
 
 	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::SanitizeFloat(tx) + " | " + FString::SanitizeFloat(tz));
 	return (IdealHit
-		+ (Right * ((-1 * SpreadVal * tx) + (SpreadVal * (1-tx))))
+		+ (Right * ((-1 * SpreadVal * tx) + (SpreadVal * (1 - tx))))
 		+ (Up * ((-1 * SpreadVal * tz) + (SpreadVal * (1 - tz)))));
 }
 
