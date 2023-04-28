@@ -3,3 +3,6 @@
 
 #include "ActionData.h"
 
+void UActionData::SetName(FString inName) {
+	internalName = inName.ToUpper();
+}

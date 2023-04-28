@@ -112,7 +112,7 @@ FAction UAIQueue::DeleteMax() {
 		int pos = 0;
 
 		for (int i = 0; i < Queue.Num(); i++) {
-		//while (pos < Queue.Num() - 1) {
+		//while (pos < Queue.Num() - 1) { NEEDS TESTING, MIGHT BE BETTER
 			FAction temp = Queue[pos];
 			int LeftChildPos = (pos * 2) + 1;
 			int RightChildPos = (pos * 2) + 2;
