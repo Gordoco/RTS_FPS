@@ -56,10 +56,11 @@ FHitResult AFPSCharacter::GetShotHit() {
 	FHitResult Hit;
 	check(GetWorld() != nullptr);
 	if (GetWorld() != nullptr) {
-		FVector Location = FiringLocation->GetComponentLocation();
-		//IMPLEMENT FIRING SPREAD
+		FVector Location = ActiveCam->GetComponentLocation();
 		FVector HitLocation = SpreadHitTransform(Location + (GetController()->GetControlRotation().Vector() * AttackRange));
-		GetWorld()->LineTraceSingleByChannel(Hit, Location, HitLocation, ECC_Camera);
+		FCollisionQueryParams Params;
+		Params.AddIgnoredActor(this);
+		GetWorld()->LineTraceSingleByChannel(Hit, Location, HitLocation, ECC_Camera, Params);
 	}
 	return Hit;
 }
@@ -71,7 +72,12 @@ FVector AFPSCharacter::SpreadHitTransform(FVector IdealHit) {
 	FVector Right = FRotator(GetController()->GetControlRotation().Pitch, GetController()->GetControlRotation().Yaw, GetController()->GetControlRotation().Roll + 90).Vector();
 	FVector Up = FRotator(GetController()->GetControlRotation().Pitch + 90, GetController()->GetControlRotation().Yaw, GetController()->GetControlRotation().Roll).Vector();;
 
-	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::SanitizeFloat(tx) + " | " + FString::SanitizeFloat(tz));
+	if (firstShotTimer == firstShotTimer_Max) {
+		firstShotTimer -= 0.01f;
+		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "FIRST SHOT");
+		return IdealHit;
+	}
+	firstShotTimer = firstShotTimer_Max - 0.01;
 	return (IdealHit
 		+ (Right * ((-1 * SpreadVal * tx) + (SpreadVal * (1-tx))))
 		+ (Up * ((-1 * SpreadVal * tz) + (SpreadVal * (1 - tz)))));
@@ -143,6 +149,10 @@ void AFPSCharacter::CheckForCombatIterator() {
 // Called every frame
 void AFPSCharacter::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
+	if (firstShotTimer != firstShotTimer_Max) {
+		firstShotTimer -= DeltaTime;
+		if (firstShotTimer <= 0) firstShotTimer = firstShotTimer_Max;
+	}
 }
 
 // Called to bind functionality to input

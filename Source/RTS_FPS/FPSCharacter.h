@@ -64,6 +64,9 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Components")
 		UCameraComponent* ADSFPSCamera;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Components")
+		UCameraComponent* ActiveCam;
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Movement")
 		float BaseMovementSpeed = 600.f;
 
@@ -84,7 +87,8 @@ protected:
 
 private:
 
-	UCameraComponent* ActiveCam;
+	float firstShotTimer = 0.5f;
+	float firstShotTimer_Max = 0.5f;
 
 	UFUNCTION()
 		void ADS();
