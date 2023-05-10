@@ -79,7 +79,7 @@ FVector AFPSCharacter::SpreadHitTransform(FVector IdealHit) {
 	}
 	firstShotTimer = firstShotTimer_Max - 0.01;
 	return (IdealHit
-		+ (Right * ((-1 * SpreadVal * tx) + (SpreadVal * (1-tx))))
+		+ (Right * ((-1 * SpreadVal * tx) + (SpreadVal * (1 - tx))))
 		+ (Up * ((-1 * SpreadVal * tz) + (SpreadVal * (1 - tz)))));
 }
 

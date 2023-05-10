@@ -4,5 +4,5 @@
 #include "MovementActionData.h"
 
 UMovementActionData::UMovementActionData() {
-	internalName = TEXT("MOVEMENT");
+	SetName(TEXT("MOVEMENT"));
 }
