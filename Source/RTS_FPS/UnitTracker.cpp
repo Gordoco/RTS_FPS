@@ -74,7 +74,6 @@ ABaseUnit* UUnitTracker::GetClosestUnit(int Team, FVector Location) {
 void UUnitTracker::RegisterUnit(ABaseUnit* Unit, int Team) {
 	if (bActive) {
 		//GEngine->AddOnScreenDebugMessage(-1, 25.f, FColor::Blue, "REGISTERED UNIT ON TEAM: " + FString::SanitizeFloat(Team));
-		// 
 		//Hacky Initialization Attempt (FIX LATER)
 		if (UUnitTracker::Teams.Num() == 0) {
 			UUnitTracker::Teams.Add(FTeamData());

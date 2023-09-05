@@ -12,7 +12,6 @@
 // Sets default values
 ABaseUnit::ABaseUnit()
 {
-	//if (bLightweightSpawn) return;
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
 	AIControllerClass = ABaseUnitController::StaticClass();
@@ -33,8 +32,8 @@ ABaseUnit::ABaseUnit()
 // Called when the game starts or when spawned
 void ABaseUnit::BeginPlay()
 {
-	//if (bLightweightSpawn) return;
 	Super::BeginPlay();
+
 	//Register Units and Players
 	if (HasAuthority()) {
 		UUnitTracker::RegisterUnit(this, Team);
@@ -185,19 +184,8 @@ void ABaseUnit::AddMovementAction(FVector Location, int prio, float inAcceptable
 		UMovementActionData* Data = NewObject<UMovementActionData>(this);
 		check(Data->IsValidLowLevel());
 		if (Data->IsValidLowLevel()) {
-
-			//VERIFY LOCATION
-			//if (VerifyMoveLocation(Location, prio, inAcceptableRadius)) {
-				AddMovementAction_Helper(Data, Location, prio, inAcceptableRadius);
-				LastMoveLocation = Location;
-			/* }
-			else {
-				FNavLocation outLoc;
-				UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
-				NavSys->GetRandomReachablePointInRadius(GetActorLocation(), 50.f, outLoc);
-				LastMoveLocation = FVector();
-				AddMovementAction_Helper(Data, outLoc.Location, prio, inAcceptableRadius);
-			}*/
+			AddMovementAction_Helper(Data, Location, prio, inAcceptableRadius);
+			LastMoveLocation = Location;
 		}
 	}
 }
@@ -256,9 +244,6 @@ void ABaseUnit::CheckForCombatIterator() {
 			if (UUnitTracker::CheckForValidity(i)) {
 				CheckForCombatHelper(PotentialEnemys[i]);
 			}
-			else {
-				//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "UNIT NOT VALID");
-			}
 		}
 	}
 }
@@ -307,7 +292,6 @@ void ABaseUnit::AllocateActionWindow() {
 
 void ABaseUnit::CheckAction() {
 	if (bFinishedAction) {
-		//GetWorld()->GetTimerManager().ClearTimer(ActionHandle);
 		RecieveAction();
 	}
 	else {
@@ -355,25 +339,12 @@ void ABaseUnit::AttackActionHandler() {
 				}
 			}
 			else {
-
 				//Attempt to get a valid location to Move To
 				FVector TargetLocation = CalculateLocationInRange(Enemy->GetActorLocation(), Enemy);
-
-				//if (TargetLocation != NULL_VECTOR) {
-
-					//On Success Move In Range
-					CachedAttackAction = CurrentAction;
-					CheckIfInRangeDelegate.BindUFunction(this, "CheckIfInRange_Iterator", Enemy);
-					GetWorld()->GetTimerManager().SetTimer(CheckIfInRangeHandle, CheckIfInRangeDelegate, 0.2, true);
-					AddMovementAction(TargetLocation, CurrentAction.Priority + 1);
-				//}
-				/*else {
-					FTimerHandle FailedRangeHandle;
-					FTimerDelegate FailedRangeDelegate;
-					FailedRangeDelegate.BindUFunction(this, "FinishRemoveEnemy", CurrentAction);
-					GetWorld()->GetTimerManager().SetTimer(FailedRangeHandle, FailedRangeDelegate, 1.f, false);
-					FinishAction();
-				}*/
+				CachedAttackAction = CurrentAction;
+				CheckIfInRangeDelegate.BindUFunction(this, "CheckIfInRange_Iterator", Enemy);
+				GetWorld()->GetTimerManager().SetTimer(CheckIfInRangeHandle, CheckIfInRangeDelegate, 0.2, true);
+				AddMovementAction(TargetLocation, CurrentAction.Priority + 1);
 			}
 		}
 		else {
@@ -395,18 +366,9 @@ bool ABaseUnit::CheckLineOfSight(AAIController* AIController, ABaseUnit* Enemy) 
 	FCollisionQueryParams Params;
 	TArray<AActor*> Actors;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABaseUnit::StaticClass(), Actors);
-	/*int teams = UUnitTracker::GetNumTeams();
-	for (int i = 0; i < teams; i++) {
-		TArray<ABaseUnit*> Units = UUnitTracker::GetTeamData(i).Units;
-		for (ABaseUnit* Unit : Units) {
-			Actors.Add(Unit);
-		}
-	}*/
 	Params.AddIgnoredActors(Actors);
 	GetWorld()->LineTraceSingleByChannel(Hit, GetActorLocation(), Enemy->GetActorLocation(), ECC_Visibility, Params);
-	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, GetDebugName(Hit.GetActor()));
 	return Hit.GetActor() == nullptr;
-	//return AIController->LineOfSightTo(Enemy, GetActorLocation());
 }
 
 void ABaseUnit::FinishRemoveEnemy(FAction Action) {
@@ -422,9 +384,8 @@ void ABaseUnit::FinishRemoveEnemy(FAction Action) {
 }
 
 void ABaseUnit::CheckIfInRange_Iterator(ABaseUnit* Enemy) {
-	check(Enemy != nullptr);
-
-	if (CheckIfInRange(Enemy->GetActorLocation()) || Enemy->IsDead()) {
+	check(Enemy != nullptr && Enemy->IsValidLowLevel())
+	if (Enemy != nullptr && Enemy->IsValidLowLevel() && (CheckIfInRange(Enemy->GetActorLocation()) || Enemy->IsDead())) {
 		GetWorld()->GetTimerManager().ClearTimer(CheckIfInRangeHandle);
 		AAIController* AIController = Cast<AAIController>(GetController());
 		if (AIController != nullptr) {
@@ -571,7 +532,6 @@ bool ABaseUnit::ValidateLocationInRange(ABaseUnit* Enemy, FVector Final, UNaviga
 
 	if (FAISystem::IsValidLocation(Final) == true
 		&& NavSys->ProjectPointToNavigation(Final, *ProjectedLocation, INVALID_NAVEXTENT, &AgentProps)
-		//&& !Cast<ABaseUnit>(Hit.GetActor())
 		&& AIController->LineOfSightTo(Enemy, FVector(Final.X, Final.Y, Final.Z + GetCapsuleComponent()->GetScaledCapsuleHalfHeight()))
 		&& !(FVector::Dist(Final, Enemy->GetActorLocation()) > AttackRange || !Hit.bBlockingHit)
 		&& !(UKismetMathLibrary::NearlyEqual_FloatFloat(Final.X, 0, 0.5) && UKismetMathLibrary::NearlyEqual_FloatFloat(Final.Y, 0, 0.5) && UKismetMathLibrary::NearlyEqual_FloatFloat(Final.Z, 0, 0.5))) {
@@ -686,32 +646,13 @@ void ABaseUnit::FinishAction() {
 	CachedAttackAction = FAction();
 	bFinishedAction = true;
 	BP_SwappedActions();
-	//RecieveAction();
 }
 
 void ABaseUnit::FinishMovement(const FPathFollowingResult& Result) {
 	if (HasAuthority()) {
 		GetWorld()->GetTimerManager().ClearTimer(CheckIfInRangeHandle);
 		GetWorld()->GetTimerManager().ClearTimer(CheckForCombatHandle);
-
-		//Check for a failed move
-		/*if (!Result.IsSuccess()) {
-			if (FailedMovementCount > MAX_MOVEMENT_ACTIONS) {
-				//If failure happens too many times delay whole AI system
-				GetWorld()->GetTimerManager().SetTimer(FailedMovementHandle, this, &ABaseUnit::FinishAction, FailedMovementDelay, false);
-			}
-			else {
-				FailedMovementCount++;
-				PostMovementAction();
-			}
-			PostMovementAction();
-		}
-		else {
-			FailedMovementCount = 0;
-			PostMovementAction();
-		}*/
 		PostMovementAction();
-		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::SanitizeFloat(Result.Code));
 	}
 }
 
@@ -723,7 +664,6 @@ void ABaseUnit::PostMovementAction() {
 		GetWorld()->GetTimerManager().ClearTimer(FailedMovementHandle);
 		CurrentAction = CachedAttackAction;
 		CachedAttackAction = FAction();
-		//RunAction();
 	}
 	FinishAction();
 }
@@ -752,9 +692,9 @@ void ABaseUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 }
 
-/********************************
-	DEBUG MESSAGES
-********************************/
+/*******************************
+		DEBUG MESSAGES
+*******************************/
 void ABaseUnit::Debug_UnknownCommand(FString CommandTag) {
 	GEngine->AddOnScreenDebugMessage(1, 5.f, FColor::Red, CommandTag);
 }
@@ -762,3 +702,6 @@ void ABaseUnit::Debug_UnknownCommand(FString CommandTag) {
 void ABaseUnit::Debug_ActionCastError() {
 	GEngine->AddOnScreenDebugMessage(2, 5.f, FColor::Red, "NO DATA");
 }
+/*******************************
+* * * * * * * * * * * * * * * *
+*******************************/
