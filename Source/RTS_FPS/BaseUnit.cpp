@@ -218,13 +218,16 @@ bool ABaseUnit::VerifyMoveLocation(FVector Location, int prio, float inAcceptabl
 }
 
 void ABaseUnit::AddMovementAction_Helper(UMovementActionData* Data, FVector Location, int prio, float inAcceptableRadius) {
+	check(Data != nullptr);
 	Data->SetLocation(Location);
 	Data->AcceptableRadius = inAcceptableRadius;
 	AddAction(FAction(Data, prio));
 }
 
 void ABaseUnit::AddAttackAction(ABaseUnit* Enemy, int prio) {
+	check(Enemy != nullptr);
 	check(HasAuthority());
+
 	if (HasAuthority() && !IsDead()) {
 		UAttackActionData* Data = NewObject<UAttackActionData>(this);
 		if (Data != nullptr) {
@@ -385,6 +388,9 @@ void ABaseUnit::AttackActionHandler() {
 }
 
 bool ABaseUnit::CheckLineOfSight(AAIController* AIController, ABaseUnit* Enemy) {
+	check(Enemy != nullptr);
+	//check(AIController != nullptr);
+
 	FHitResult Hit;
 	FCollisionQueryParams Params;
 	TArray<AActor*> Actors;
@@ -400,7 +406,6 @@ bool ABaseUnit::CheckLineOfSight(AAIController* AIController, ABaseUnit* Enemy) 
 	GetWorld()->LineTraceSingleByChannel(Hit, GetActorLocation(), Enemy->GetActorLocation(), ECC_Visibility, Params);
 	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, GetDebugName(Hit.GetActor()));
 	return Hit.GetActor() == nullptr;
-
 	//return AIController->LineOfSightTo(Enemy, GetActorLocation());
 }
 
@@ -417,6 +422,8 @@ void ABaseUnit::FinishRemoveEnemy(FAction Action) {
 }
 
 void ABaseUnit::CheckIfInRange_Iterator(ABaseUnit* Enemy) {
+	check(Enemy != nullptr);
+
 	if (CheckIfInRange(Enemy->GetActorLocation()) || Enemy->IsDead()) {
 		GetWorld()->GetTimerManager().ClearTimer(CheckIfInRangeHandle);
 		AAIController* AIController = Cast<AAIController>(GetController());
@@ -447,6 +454,8 @@ bool ABaseUnit::CheckIfInRange(FVector Location) {
 }
 
 FVector ABaseUnit::CalculateLocationInRange(FVector EnemyLocation, ABaseUnit* Enemy) {
+	check(Enemy != nullptr);
+
 	//Calculate Direction
 	FVector Dir = EnemyLocation - GetActorLocation();
 	Dir.Normalize();
@@ -481,13 +490,12 @@ FVector ABaseUnit::CalculateLocationInRange(FVector EnemyLocation, ABaseUnit* En
 			EndVector = Final;
 		}
 		else {
-
 			//Recursively find points left and right at an interval along the circumfrence of the "In Range Circle" and return closest valid result
 			float Angle = UKismetMathLibrary::Atan2(Dir.Y, Dir.X) + UKismetMathLibrary::GetPI() / 2; //Calculate angle of straight line point (Atan2 for 360 degree return value)
 			
 			//Rotate around the circle in opposite directions
-			FVector FirstLeftPoint = Rec_CalculateLocationInRange(EnemyLocation, Enemy, Angle, 0.5f, true, Angle);
-			FVector FirstRightPoint = Rec_CalculateLocationInRange(EnemyLocation, Enemy, Angle, 0.5f, false, Angle);
+			FVector FirstLeftPoint = Rec_CalculateLocationInRange(EnemyLocation, Enemy, Angle, 0.05f, true, Angle);
+			FVector FirstRightPoint = Rec_CalculateLocationInRange(EnemyLocation, Enemy, Angle, 0.05f, false, Angle);
 
 			//Skip determining result if either side is a NULL value
 			if (FirstLeftPoint == NULL_VECTOR && FirstRightPoint == NULL_VECTOR) {
@@ -501,7 +509,6 @@ FVector ABaseUnit::CalculateLocationInRange(FVector EnemyLocation, ABaseUnit* En
 					EndVector = FirstLeftPoint;
 				}
 				else {
-
 					//Choose closest valid location if both left and right are valid
 					float Dist1 = FVector::Dist(GetActorLocation(), FirstLeftPoint);
 					float Dist2 = FVector::Dist(GetActorLocation(), FirstRightPoint);
@@ -519,6 +526,7 @@ FVector ABaseUnit::CalculateLocationInRange(FVector EnemyLocation, ABaseUnit* En
 }
 
 FVector ABaseUnit::Rec_CalculateLocationInRange(FVector EnemyLocation, ABaseUnit* Enemy, float Angle, float Interval, bool bLeft, float OriginalAngle) {
+	check(Enemy != nullptr);
 
 	//Rotate around the range circle by an interval
 	float NewAngle;
@@ -559,6 +567,8 @@ FVector ABaseUnit::Rec_CalculateLocationInRange(FVector EnemyLocation, ABaseUnit
 }
 
 bool ABaseUnit::ValidateLocationInRange(ABaseUnit* Enemy, FVector Final, UNavigationSystemV1* NavSys, const FNavAgentProperties& AgentProps, FNavLocation* ProjectedLocation, AAIController* AIController, FHitResult Hit) {
+	check(Enemy != nullptr);
+
 	if (FAISystem::IsValidLocation(Final) == true
 		&& NavSys->ProjectPointToNavigation(Final, *ProjectedLocation, INVALID_NAVEXTENT, &AgentProps)
 		//&& !Cast<ABaseUnit>(Hit.GetActor())
@@ -572,6 +582,8 @@ bool ABaseUnit::ValidateLocationInRange(ABaseUnit* Enemy, FVector Final, UNaviga
 
 //NEEDS CHANGING TO PROJECTILE/MELEE COMBAT AND TO MAKE INTERACTIVE WITH PLAYER
 void ABaseUnit::MakeAttack(ABaseUnit* Enemy, float inDamage) {
+	check(Enemy != nullptr);
+
 	SetActorRotation(FRotator(0.f, FRotator(UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), Enemy->GetActorLocation())).Yaw, 0.f));
 	Enemy->DealDamage(inDamage);
 }

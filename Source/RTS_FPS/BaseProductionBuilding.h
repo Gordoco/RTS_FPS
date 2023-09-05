@@ -73,7 +73,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Training")
 		void RecruitUnit(TSubclassOf<ABaseUnit> UnitType);
 
-	UFUNCTION(Server, Unreliable, WithValidation, BlueprintCallable, Category = "Training")
+	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Training")
 		void Server_RecruitUnit(TSubclassOf<ABaseUnit> UnitType);
 
 	UFUNCTION(Server, Unreliable, WithValidation, BlueprintCallable, Category = "Training")

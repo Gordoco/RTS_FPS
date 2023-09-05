@@ -63,7 +63,7 @@ void ARTSPawn::Init() {
 void ARTSPawn::AddResources(EResourceType Type, float AddVal) {
 	check(HasAuthority());
 	if (!HasAuthority()) return;
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "ADDED (SERVER)");
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "ADDED (SERVER)");
 	switch (Type) {
 	case ERT_Metal:
 		Metal += AddVal;
@@ -72,6 +72,15 @@ void ARTSPawn::AddResources(EResourceType Type, float AddVal) {
 		Energy += AddVal;
 		break;
 	}
+}
+
+bool ARTSPawn::HasBuilderSelected() {
+	for (ABaseUnit* Unit : SelectedUnits) {
+		if (Cast<ABaseResourceUnit>(Unit)) {
+			return true;
+		}
+	}
+	return false;
 }
 
 bool ARTSPawn::AttemptToBuild(TSubclassOf<ABaseBuilding> BuildingClass) {
@@ -98,12 +107,19 @@ void ARTSPawn::Server_CreateBuilding_Implementation(TSubclassOf<ABaseBuilding> B
 	if (Server_CurrentBuilding == nullptr) {
 		Server_CurrentBuilding = GetWorld()->SpawnActorDeferred<ABaseBuilding>(BuildingClass, FTransform());
 		if (Server_CurrentBuilding != nullptr) {
+			if (this->Energy < Server_CurrentBuilding->BuildingCost_Energy || this->Metal < Server_CurrentBuilding->BuildingCost_Metal) {
+				Server_CurrentBuilding = nullptr;
+				return;
+			}
+			AddResources(EResourceType::ERT_Energy, -Server_CurrentBuilding->BuildingCost_Energy);
+			AddResources(EResourceType::ERT_Metal, -Server_CurrentBuilding->BuildingCost_Metal);
 			Server_CurrentBuilding->SetActorHiddenInGame(true);
 			Server_CurrentBuilding->SetTeam(Team);
 			Server_CurrentBuilding->OwningPlayerPawn = this;
 			BuildingMesh = Server_CurrentBuilding->GetFinalMesh();
 			//GEngine->AddOnScreenDebugMessage(72, 5.f, FColor::Green, "SERVER: Pre-Spawned Building");
 			CurrentTemplateClass = Server_CurrentBuilding->TemplateClass;
+			//OnRep_CurrentTemplateClass();
 		}
 	}
 }
@@ -308,9 +324,9 @@ void ARTSPawn::RShift_Implementation() {
 
 void ARTSPawn::PlayerClick() 
 {
-	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, "Clicked");
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, "Clicked");
 	if (CheckPlacingBuilding() && IsLocallyControlled()) {
-		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, "Locally Controlled and Placing in Progress");
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, "Locally Controlled and Placing in Progress");
 		Server_FinalizeBuildingPlacement(CurrentTemplate->GetTransform());
 		CurrentTemplate->Destroy();
 		CurrentTemplate = nullptr;
@@ -380,6 +396,8 @@ void ARTSPawn::DrawSelectionBox(FHitResult Hit)
 }
 
 void ARTSPawn::EvaluateHitUnit(ABaseUnit* HitUnit) {
+	check(HitUnit != nullptr);
+
 	bool bDeselect = true;
 	if (SelectUnit(HitUnit)) { bDeselect = false; }
 	if (bDeselect) {
@@ -394,6 +412,8 @@ void ARTSPawn::EvaluateHitUnit(ABaseUnit* HitUnit) {
 }
 
 void ARTSPawn::EvaluateHitBuilding(ABaseBuilding* HitBuilding) {
+	check(HitBuilding != nullptr);
+
 	for (int i = 0; i < SelectedUnits.Num(); i++) {
 		SelectedUnits[i]->Deselected();
 	}
@@ -468,11 +488,20 @@ bool ARTSPawn::Server_FinalizeBuildingPlacement_Validate(FTransform Transform)
 
 void ARTSPawn::Server_FinalizeBuildingPlacement_Implementation(FTransform Transform)
 {
-	UGameplayStatics::FinishSpawningActor(Server_CurrentBuilding, Transform);
+	FTransform FinalTransform = FTransform(Transform.GetRotation(),
+										FVector(Transform.GetTranslation().X, Transform.GetTranslation().Y, Transform.GetTranslation().Z + Server_CurrentBuilding->BuildingZOffset),
+										Transform.GetScale3D());
+	UGameplayStatics::FinishSpawningActor(Server_CurrentBuilding, FinalTransform);
 	Server_CurrentBuilding->BeginConstruction();
 	Server_CurrentBuilding->SetActorHiddenInGame(false);
+	UpdateOwnership(Server_CurrentBuilding);
 	Server_CurrentBuilding = nullptr;
 	CurrentTemplateClass = nullptr;
+}
+
+void ARTSPawn::UpdateOwnership_Implementation(ABaseBuilding* BuildingRef) {
+	if (BuildingRef == nullptr) return;
+	BuildingRef->SetOwner(this);
 }
 
 void ARTSPawn::PlayerRightClick() 
@@ -553,7 +582,7 @@ void ARTSPawn::OrderMovement(FVector Location) {
 			return (A.GetActorLocation() - Location).Size() < (B.GetActorLocation() - Location).Size();
 		});
 		for (int i = 0; i < SelectedUnits.Num(); i++) {
-			if (SelectedUnits[i]->IsValidLowLevel() && !SelectedUnits[i]->IsDead()) {
+			if (SelectedUnits[i] != nullptr && SelectedUnits[i]->IsValidLowLevel() && !SelectedUnits[i]->IsDead()) {
 				AFPSCharacter* Player = Cast<AFPSCharacter>(SelectedUnits[i]);
 				if (Player == nullptr) {
 					SelectedUnits[i]->EmptyQue();
@@ -575,8 +604,10 @@ void ARTSPawn::OrderMovement(FVector Location) {
 void ARTSPawn::OrderGather(ABaseResource* Resource) {
 	check(HasAuthority());
 	if (HasAuthority()) {
+		check(Resource != nullptr);
+
 		for (int i = 0; i < SelectedUnits.Num(); i++) {
-			if (SelectedUnits[i]->IsValidLowLevel() && !SelectedUnits[i]->IsDead()) {
+			if (SelectedUnits[i] != nullptr && SelectedUnits[i]->IsValidLowLevel() && !SelectedUnits[i]->IsDead()) {
 				SelectedUnits[i]->EmptyQue();
 				ABaseResourceUnit* Gatherer = Cast<ABaseResourceUnit>(SelectedUnits[i]);
 				//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "TEST: PLAYER ORDERED GATHERER");
@@ -596,11 +627,13 @@ void ARTSPawn::OrderGather(ABaseResource* Resource) {
 void ARTSPawn::OrderAttack(ABaseUnit* EnemyUnit) {
 	check(HasAuthority());
 	if (HasAuthority()) {
+		check(EnemyUnit != nullptr);
+
 		if (EnemyUnit != nullptr && EnemyUnit->IsValidLowLevel() && !EnemyUnit->IsDead()) {
 			for (int i = 0; i < SelectedUnits.Num(); i++) {
 				AFPSCharacter* Player = Cast<AFPSCharacter>(SelectedUnits[i]);
 				if (Player == nullptr) {
-					if (SelectedUnits[i]->IsValidLowLevel() && !SelectedUnits[i]->IsDead()) {
+					if (SelectedUnits[i] != nullptr && SelectedUnits[i]->IsValidLowLevel() && !SelectedUnits[i]->IsDead()) {
 						SelectedUnits[i]->EmptyQue();
 						SelectedUnits[i]->AddAttackAction(EnemyUnit, SelectedUnits[i]->UNIT_ORDERED_PRIORITY);
 					}

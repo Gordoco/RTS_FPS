@@ -36,6 +36,8 @@ protected:
 
 	virtual void RunAction() override;
 
+	virtual void Die() override;
+
 	void GatherActionHandler();
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Resources", Replicated)

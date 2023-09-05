@@ -236,6 +236,8 @@ protected:
 
 	void FinishAction();
 
+	virtual void Die();
+
 private:
 	static const int MAX_MOVEMENT_ACTIONS = 10;
 
@@ -291,8 +293,6 @@ private:
 	bool ValidateLocationInRange(ABaseUnit* Enemy, FVector Final, UNavigationSystemV1* NavSys, const FNavAgentProperties& AgentProps, FNavLocation* ProjectedLocation, AAIController* AIController, FHitResult Hit);
 
 	void MakeAttack(ABaseUnit* Enemy, float inDamage);
-
-	virtual void Die();
 
 	void Die_InvalidateAndDestroyAI();
 

@@ -43,6 +43,9 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "HUD")
 		void CreateHUD();
 
+	UFUNCTION(BlueprintPure, Category = "Units")
+		bool HasBuilderSelected();
+
 public:	
 	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Team")
 		int Team = 0;
@@ -83,7 +86,7 @@ private:
 		float Energy = 0.f;
 
 	UPROPERTY(Replicated)
-		float Metal = 0.f;
+		float Metal = 200.f;
 
 	UPROPERTY(ReplicatedUsing = OnRep_SetLocation)
 		FVector PlayerLocation;
@@ -136,6 +139,9 @@ private:
 
 	UFUNCTION(Server, Unreliable, WithValidation)
 		void Server_FinalizeBuildingPlacement(FTransform Transform);
+
+	UFUNCTION(NetMulticast, Unreliable)
+		void UpdateOwnership(ABaseBuilding* BuildingRef);
 
 	void PlayerRightClick();
 

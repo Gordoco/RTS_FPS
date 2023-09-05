@@ -24,6 +24,7 @@ bool ARTS_FPSGameModeBase::CreateMatch(FString MapName, int NumPlayers, bool bLi
 }
 
 void ARTS_FPSGameModeBase::PostSeamlessTravel() {
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Arrived");
 	OldControllerList.Empty();
 	for (auto It = GetWorld()->GetControllerIterator(); It; ++It)
 	{
@@ -38,9 +39,10 @@ void ARTS_FPSGameModeBase::PostSeamlessTravel() {
 void ARTS_FPSGameModeBase::SwapPlayerControllers(APlayerController* OldPC, APlayerController* NewPC) 
 {
 	ARTSPlayerController* CAST_OldPC = Cast<ARTSPlayerController>(OldPC);
-	ARTSPlayerController* CAST_NewPC = Cast<ARTSPlayerController>(OldPC);
+	ARTSPlayerController* CAST_NewPC = Cast<ARTSPlayerController>(NewPC);
 	if (CAST_OldPC != nullptr && CAST_NewPC != nullptr) {
 		Data.Add(FPCData(NewPC, CAST_OldPC->GetMatchGameplayType(), CAST_OldPC->GetTeam()));
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Swapped PC");
 	}
 	Super::SwapPlayerControllers(OldPC, NewPC); //Must call super at the end as it destroys OldPC
 }
@@ -54,11 +56,12 @@ void ARTS_FPSGameModeBase::CheckForPlayersLoaded() {
 				APlayerController* PC = Cast<APlayerController>(Controller);
 				if (PC == nullptr) {
 					bStart = false;
+					GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Null Controller Detected");
 				}
 				else if (!PC->HasClientLoadedCurrentWorld()) {
 					bStart = false;
+					GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, PC->GetDebugName(PC) + " Has not loaded in");
 				}
-				//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, PC->GetDebugName(PC));
 			}
 		}
 	}

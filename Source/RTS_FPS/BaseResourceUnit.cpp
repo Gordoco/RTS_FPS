@@ -67,10 +67,15 @@ void ABaseResourceUnit::AddGatherAction(ABaseResource* Resource, int prio) {
 	}
 }
 
+void ABaseResourceUnit::Die() {
+	Super::Die();
+	GetWorld()->GetTimerManager().ClearTimer(GatherHandle);
+}
+
 void ABaseResourceUnit::RunAction() {
 	Super::RunAction();
 	check(HasAuthority());
-	if (HasAuthority()) {
+	if (HasAuthority() && !IsDead()) {
 		GetWorld()->GetTimerManager().ClearTimer(GatherHandle);
 		if (CurrentAction.ActionData != nullptr) {
 			if (CurrentAction.Action_Type == "GATHER") {
@@ -145,7 +150,7 @@ ABaseResourceDropOff* ABaseResourceUnit::GetClosestDropOffPoint() {
 }
 
 void ABaseResourceUnit::GatherIterator() {
-	if (CurrResource != nullptr) {
+	if (!IsDead() && CurrResource != nullptr) {
 		if (TypeCarried != CurrResource->GetResourceType()) InternalResourceStorage = 0;
 		TypeCarried = CurrResource->GetResourceType();
 		InternalResourceStorage = FMath::Clamp(InternalResourceStorage + CurrResource->GetGatherAmount(), 0.f, MaxResources);

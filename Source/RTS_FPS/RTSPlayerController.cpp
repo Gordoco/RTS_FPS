@@ -42,7 +42,7 @@ void ARTSPlayerController::Client_FinishInitLobby() {
 
 void ARTSPlayerController::StartMatch() {
 	if (Player != nullptr && Player->IsValidLowLevel()) {
-		if (UGameplayStatics::GetCurrentLevelName(GetWorld()) != "LobbyMenu" && UGameplayStatics::GetCurrentLevelName(GetWorld()) != "MainMenu") {
+		if (UGameplayStatics::GetCurrentLevelName(GetWorld()) != "LobbyMenu" && UGameplayStatics::GetCurrentLevelName(GetWorld()) != "AnimatedMainMenu") {
 			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "SPAWNING PAWNS");
 			SpawnControlledPawn();
 			CreatePlayerHUDs();

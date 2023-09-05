@@ -7,6 +7,7 @@
 #include "TemplateBuilding.h"
 #include "TimerManager.h"
 #include "Components/StaticMeshComponent.h"
+#include "BaseResource.h"
 #include "Net/UnrealNetwork.h"
 #include "BaseBuilding.generated.h"
 
@@ -81,7 +82,13 @@ public:
 	void SetTeam(int inTeam) { Team = inTeam; }
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
-		float BuildingCost = 0.f;
+		float BuildingCost_Metal = 0.f;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
+		float BuildingCost_Energy = 0.f;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
+		float BuildingZOffset = 0.f;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Template")
 		TSubclassOf<ATemplateBuilding> TemplateClass;

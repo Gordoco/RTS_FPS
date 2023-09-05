@@ -91,15 +91,16 @@ bool ABaseProductionBuilding::Server_RecruitUnit_Validate(TSubclassOf<ABaseUnit>
 }
 
 void ABaseProductionBuilding::Server_RecruitUnit_Implementation(TSubclassOf<ABaseUnit> UnitType) {
-	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Server_Recruit");
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Server_Recruit");
 	if (OwningPlayerPawn == nullptr) return;
 	if (Cast<ARTSPawn>(OwningPlayerPawn) == nullptr) return;
-	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Server_OwnerValid");
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Server_OwnerValid");
 	ARTSPawn* RTSPawn = Cast<ARTSPawn>(OwningPlayerPawn);
-
 	ABaseUnit* NewUnit = GetWorld()->SpawnActorDeferred<ABaseUnit>(UnitType, FTransform::Identity);
+	if (!NewUnit->IsValidLowLevel()) return;
+	NewUnit->Team = this->Team;
 	if (RTSPawn->GetEnergy() < NewUnit->GetTrainingCost_Energy() || RTSPawn->GetMetal() < NewUnit->GetTrainingCost_Metal()) return;
-	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, GetDebugName(NewUnit));
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, GetDebugName(NewUnit));
 	RTSPawn->AddResources(ERT_Energy, -NewUnit->GetTrainingCost_Energy());
 	RTSPawn->AddResources(ERT_Metal, -NewUnit->GetTrainingCost_Metal());
 	CurrTrainingTime = NewUnit->GetTrainingTime();
@@ -110,9 +111,10 @@ void ABaseProductionBuilding::Server_RecruitUnit_Implementation(TSubclassOf<ABas
 }
 
 void ABaseProductionBuilding::RecruitUnit(TSubclassOf<ABaseUnit> UnitType) {
-	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Client_Recruit");
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Client_Recruit");
 	Server_RecruitUnit(UnitType);
 }
+
 void ABaseProductionBuilding::UpdateTrainingProgress() {
 	TrainingCount++;
 	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Server_TrainingCount");
