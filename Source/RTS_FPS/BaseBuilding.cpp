@@ -17,6 +17,7 @@ ABaseBuilding::ABaseBuilding()
 	CurrentMesh = Mesh->GetStaticMesh();
 
 	bReplicates = true;
+	bAlwaysRelevent = true;
 }
 
 void ABaseBuilding::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const

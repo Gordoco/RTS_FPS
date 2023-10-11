@@ -91,10 +91,12 @@ bool ABaseProductionBuilding::Server_RecruitUnit_Validate(TSubclassOf<ABaseUnit>
 }
 
 void ABaseProductionBuilding::Server_RecruitUnit_Implementation(TSubclassOf<ABaseUnit> UnitType) {
+
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Server_Recruit");
 	if (OwningPlayerPawn == nullptr) return;
 	if (Cast<ARTSPawn>(OwningPlayerPawn) == nullptr) return;
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Server_OwnerValid");
+
 	ARTSPawn* RTSPawn = Cast<ARTSPawn>(OwningPlayerPawn);
 	ABaseUnit* NewUnit = GetWorld()->SpawnActorDeferred<ABaseUnit>(UnitType, FTransform::Identity);
 	if (!NewUnit->IsValidLowLevel()) return;
@@ -107,7 +109,6 @@ void ABaseProductionBuilding::Server_RecruitUnit_Implementation(TSubclassOf<ABas
 
 	Push(NewUnit, NewUnit->GetTrainingTime());
 	StartTraining();
-	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Server_Training");
 }
 
 void ABaseProductionBuilding::RecruitUnit(TSubclassOf<ABaseUnit> UnitType) {

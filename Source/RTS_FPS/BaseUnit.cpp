@@ -22,6 +22,7 @@ ABaseUnit::ABaseUnit()
 
 	bReplicates = true;
 	SetReplicateMovement(true);
+	bAlwaysRelevant = true;
 
 	SelectionSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("SELECTION"));
 	SelectionSprite->SetupAttachment(RootComponent);
