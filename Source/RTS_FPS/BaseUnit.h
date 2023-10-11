@@ -286,6 +286,8 @@ private:
 
 	bool CheckIfInRange(FVector EnemyLocation);
 
+	bool CheckFullCircle(float NewAngle, float OriginalAngle, float Interval);
+
 	FVector CalculateLocationInRange(FVector EnemyLocation, ABaseUnit* Enemy);
 
 	FVector Rec_CalculateLocationInRange(FVector EnemyLocation, ABaseUnit* Enemy, float Angle, float Interval, bool bLeft, float OriginalAngle);

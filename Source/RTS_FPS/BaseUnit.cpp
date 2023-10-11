@@ -36,12 +36,8 @@ void ABaseUnit::BeginPlay()
 	Super::BeginPlay();
 
 	//Register Units and Players
-	if (HasAuthority()) {
-		UUnitTracker::RegisterUnit(this, Team);
-	}
-	if (Cast<AFPSCharacter>(this) == nullptr) {
-		BeginPlay_Units();
-	}
+	if (HasAuthority()) UUnitTracker::RegisterUnit(this, Team);
+	if (Cast<AFPSCharacter>(this) == nullptr) BeginPlay_Units();
 }
 
 void ABaseUnit::BeginPlay_Units() {
@@ -92,10 +88,11 @@ void ABaseUnit::EmptyQue() {
 		if (ActionQue != nullptr) {
 			CurrentAction = FAction();
 			bAttacking = false;
+
+			//Check for AIController (Mostly to avoid editor crashes)
 			AAIController* AIController = Cast<AAIController>(GetController());
-			if (AIController != nullptr) {
-				AIController->StopMovement();
-			}
+			if (AIController != nullptr) AIController->StopMovement();
+
 			GetWorld()->GetTimerManager().ClearTimer(CheckForCombatHandle);
 			GetWorld()->GetTimerManager().ClearTimer(AttackSpeedHandle);
 			ActionQue->Empty();
@@ -114,6 +111,7 @@ void ABaseUnit::AddAction(FAction Action) {
 void ABaseUnit::SearchForEnemies(int prio) {
 	check(HasAuthority());
 	ABaseUnit* Enemy = UUnitTracker::GetClosestUnit(Team, GetActorLocation());
+
 	check(Enemy != nullptr);
 	if (Enemy != nullptr) {
 		float distance = FVector::Dist(GetActorLocation(), Enemy->GetActorLocation());
@@ -129,9 +127,7 @@ void ABaseUnit::CheckNewActionPrio() {
 	if (HasAuthority() && !IsDead()) {
 		if (ActionQue != nullptr && Brain != nullptr) {
 			if (!ActionQue->IsEmpty()) {
-				if (CurrentAction.Priority < ActionQue->Peek().Priority) {
-					RecieveAction();
-				}
+				if (CurrentAction.Priority < ActionQue->Peek().Priority) RecieveAction();
 			}
 		}
 	}
@@ -155,9 +151,8 @@ void ABaseUnit::RecieveAction() {
 						if (ActionQue->Peek().Action_Type == "ATTACK") {
 							temp = ActionQue->GetClosestAttackAction(GetActorLocation(), ActionQue->Peek().Priority);
 						}
-						else {
-							temp = ActionQue->DeleteMax();
-						}
+						else temp = ActionQue->DeleteMax();
+
 						GetWorld()->GetTimerManager().ClearTimer(FailedMovementHandle);
 						bAttacking = false;
 						ActionQue->Insert_NoCheck(CurrentAction);
@@ -172,9 +167,7 @@ void ABaseUnit::RecieveAction() {
 					BP_SwappedActions();
 				}
 			}
-			else {
-				Brain->FinishedCycle();
-			}
+			else Brain->FinishedCycle();
 		}
 	}
 }
@@ -198,12 +191,8 @@ bool ABaseUnit::VerifyMoveLocation(FVector Location, int prio, float inAcceptabl
 
 	if (Location != LastMoveLocation
 		&& (FAISystem::IsValidLocation(Location)
-			&& NavSys->ProjectPointToNavigation(Location, ProjectedLocation, INVALID_NAVEXTENT, &AgentProps))) {
-		return true;
-	}
-	else {
-		return false;
-	}
+			&& NavSys->ProjectPointToNavigation(Location, ProjectedLocation, INVALID_NAVEXTENT, &AgentProps))) return true;
+	else return false;
 }
 
 void ABaseUnit::AddMovementAction_Helper(UMovementActionData* Data, FVector Location, int prio, float inAcceptableRadius) {
@@ -242,9 +231,7 @@ void ABaseUnit::CheckForCombatIterator() {
 	if (HasAuthority() && !IsDead()) {
 		TArray<ABaseUnit*> PotentialEnemys = UUnitTracker::GetUnitsInRange(Team, VisionRange, GetActorLocation());
 		for (int i = 0; i < PotentialEnemys.Num(); i++) {
-			if (UUnitTracker::CheckForValidity(i)) {
-				CheckForCombatHelper(PotentialEnemys[i]);
-			}
+			if (UUnitTracker::CheckForValidity(i)) CheckForCombatHelper(PotentialEnemys[i]);
 		}
 	}
 }
@@ -274,16 +261,10 @@ void ABaseUnit::RunAction() {
 	bFinishedAction = false;
 	if (HasAuthority()) {
 		if (CurrentAction.ActionData != nullptr) {
-			if (CurrentAction.Action_Type == "MOVEMENT") {
-				MovementActionHandler();
-			}
-			else if (CurrentAction.Action_Type == "ATTACK") {
-				AttackActionHandler();
-			}
+			if (CurrentAction.Action_Type == "MOVEMENT") MovementActionHandler();
+			else if (CurrentAction.Action_Type == "ATTACK") AttackActionHandler();
 		}
-		else {
-			FinishAction();
-		}
+		else FinishAction();
 	}
 }
 
@@ -292,12 +273,8 @@ void ABaseUnit::AllocateActionWindow() {
 }
 
 void ABaseUnit::CheckAction() {
-	if (bFinishedAction) {
-		RecieveAction();
-	}
-	else {
-		CheckNewActionPrio();
-	}
+	if (bFinishedAction) RecieveAction();
+	else CheckNewActionPrio();
 }
 
 void ABaseUnit::MovementActionHandler() {
@@ -308,9 +285,7 @@ void ABaseUnit::MovementActionHandler() {
 		if (AIController != nullptr && AIController->IsValidLowLevel()) {
 			AIController->MoveToLocation(Data->GetLocation(), Data->AcceptableRadius, true, true, true, true, false);
 		}
-		else {
-			FinishAction();
-		}
+		else FinishAction();
 	}
 	else {
 		Debug_ActionCastError();
@@ -377,9 +352,7 @@ void ABaseUnit::FinishRemoveEnemy(FAction Action) {
 		UAttackActionData* Data = Cast<UAttackActionData>(Action.ActionData);
 		if (Data != nullptr) {
 			ABaseUnit* Enemy = Data->GetEnemy();
-			if (Enemy != nullptr && Enemy->IsValidLowLevel() && !Enemy->IsDead()) {
-				RemoveEnemyFromList(Enemy);
-			}
+			if (Enemy != nullptr && Enemy->IsValidLowLevel() && !Enemy->IsDead()) RemoveEnemyFromList(Enemy);
 		}
 	}
 }
@@ -416,6 +389,7 @@ bool ABaseUnit::CheckIfInRange(FVector Location) {
 }
 
 FVector ABaseUnit::CalculateLocationInRange(FVector EnemyLocation, ABaseUnit* Enemy) {
+	//Should never be called on a null entity
 	check(Enemy != nullptr);
 
 	//Calculate Direction
@@ -432,9 +406,7 @@ FVector ABaseUnit::CalculateLocationInRange(FVector EnemyLocation, ABaseUnit* En
 	FVector Final = FVector(ReturnVector.X, ReturnVector.Y, Hit.Location.Z);
 
 	//Ensure location is in range and when tracing to the ground it hit a valid surface
-	if (FVector::Dist(Final, EnemyLocation) > AttackRange || !Hit.bBlockingHit) {
-		return NULL_VECTOR;
-	}
+	if (FVector::Dist(Final, EnemyLocation) > AttackRange || !Hit.bBlockingHit) return NULL_VECTOR;
 
 	//Return vector init as NULL
 	FVector EndVector = NULL_VECTOR;
@@ -448,9 +420,7 @@ FVector ABaseUnit::CalculateLocationInRange(FVector EnemyLocation, ABaseUnit* En
 	if (AIController != nullptr) {
 
 		//Return Straight Line Result if Valid
-		if (ValidateLocationInRange(Enemy, Final, NavSys, AgentProps, &ProjectedLocation, AIController, Hit)) {
-			EndVector = Final;
-		}
+		if (ValidateLocationInRange(Enemy, Final, NavSys, AgentProps, &ProjectedLocation, AIController, Hit)) EndVector = Final;
 		else {
 			//Recursively find points left and right at an interval along the circumfrence of the "In Range Circle" and return closest valid result
 			float Angle = UKismetMathLibrary::Atan2(Dir.Y, Dir.X) + UKismetMathLibrary::GetPI() / 2; //Calculate angle of straight line point (Atan2 for 360 degree return value)
@@ -460,26 +430,16 @@ FVector ABaseUnit::CalculateLocationInRange(FVector EnemyLocation, ABaseUnit* En
 			FVector FirstRightPoint = Rec_CalculateLocationInRange(EnemyLocation, Enemy, Angle, 0.05f, false, Angle);
 
 			//Skip determining result if either side is a NULL value
-			if (FirstLeftPoint == NULL_VECTOR && FirstRightPoint == NULL_VECTOR) {
-				return NULL_VECTOR;
-			}
+			if (FirstLeftPoint == NULL_VECTOR && FirstRightPoint == NULL_VECTOR) return NULL_VECTOR;
 			else {
-				if (FirstLeftPoint == NULL_VECTOR) {
-					EndVector = FirstRightPoint;
-				}
-				else if (FirstRightPoint == NULL_VECTOR) {
-					EndVector = FirstLeftPoint;
-				}
+				if (FirstLeftPoint == NULL_VECTOR) EndVector = FirstRightPoint;
+				else if (FirstRightPoint == NULL_VECTOR) EndVector = FirstLeftPoint;
 				else {
 					//Choose closest valid location if both left and right are valid
 					float Dist1 = FVector::Dist(GetActorLocation(), FirstLeftPoint);
 					float Dist2 = FVector::Dist(GetActorLocation(), FirstRightPoint);
-					if (Dist1 < Dist2) {
-						EndVector = FirstLeftPoint;
-					}
-					else {
-						EndVector = FirstRightPoint;
-					}
+					if (Dist1 < Dist2) EndVector = FirstLeftPoint;
+					else EndVector = FirstRightPoint;
 				}
 			}
 		}
@@ -492,12 +452,8 @@ FVector ABaseUnit::Rec_CalculateLocationInRange(FVector EnemyLocation, ABaseUnit
 
 	//Rotate around the range circle by an interval
 	float NewAngle;
-	if (bLeft) {
-		NewAngle = Angle + Interval;
-	}
-	else {
-		NewAngle = Angle - Interval;
-	}
+	if (bLeft) NewAngle = Angle + Interval;
+	else NewAngle = Angle - Interval;
 
 	//Set ReturnVector to next rotated value
 	FVector ReturnVector = FVector(EnemyLocation.X + ((AttackRange * 0.9) * FMath::Sin(NewAngle)), EnemyLocation.Y + (AttackRange * FMath::Cos(NewAngle)), EnemyLocation.Z);
@@ -512,20 +468,18 @@ FVector ABaseUnit::Rec_CalculateLocationInRange(FVector EnemyLocation, ABaseUnit
 	const FNavAgentProperties& AgentProps = GetNavAgentPropertiesRef();
 	FNavLocation ProjectedLocation;
 
+	//Safety check for AIController
 	AAIController* AIController = Cast<AAIController>(GetController());
-	if (AIController != nullptr) {
+	if (AIController == nullptr) return NULL_VECTOR;
 
-		//Return Current Result if Valid (Base Case)
-		if (ValidateLocationInRange(Enemy, Final, NavSys, AgentProps, &ProjectedLocation, AIController, Hit)) {
-			return Final;
-		}
-		else if (FMath::Abs(NewAngle - OriginalAngle) < Interval || NewAngle >= (OriginalAngle + (UKismetMathLibrary::GetPI()*2)) || NewAngle <= (OriginalAngle - (UKismetMathLibrary::GetPI() * 2))) { return NULL_VECTOR; } //Prevent infinite recursion by stopping when completing a full circle
-		else {
-			//Check Next Angle (Recursive Case)
-			return Rec_CalculateLocationInRange(EnemyLocation, Enemy, NewAngle, Interval, bLeft, OriginalAngle);
-		}
-	}
-	else { return NULL_VECTOR; } //If AI is invalidated terminate
+	//Return Current Result if Valid (Base Case)
+	if (ValidateLocationInRange(Enemy, Final, NavSys, AgentProps, &ProjectedLocation, AIController, Hit)) return Final;
+	else if (CheckFullCircle(NewAngle, OriginalAngle, Interval)) return NULL_VECTOR; //Prevent infinite recursion by stopping when completing a full circle
+	else return Rec_CalculateLocationInRange(EnemyLocation, Enemy, NewAngle, Interval, bLeft, OriginalAngle);
+}
+
+bool ABaseUnit::CheckFullCircle(float NewAngle, float OriginalAngle, float Interval) {
+	return FMath::Abs(NewAngle - OriginalAngle) < Interval || NewAngle >= (OriginalAngle + (UKismetMathLibrary::GetPI() * 2)) || NewAngle <= (OriginalAngle - (UKismetMathLibrary::GetPI() * 2));
 }
 
 bool ABaseUnit::ValidateLocationInRange(ABaseUnit* Enemy, FVector Final, UNavigationSystemV1* NavSys, const FNavAgentProperties& AgentProps, FNavLocation* ProjectedLocation, AAIController* AIController, FHitResult Hit) {
@@ -553,19 +507,14 @@ void ABaseUnit::DealDamage(float inDamage) {
 	check(HasAuthority());
 	if (HasAuthority() && !IsDead()) {
 		Health = FMath::Clamp(Health - inDamage, 0, MaxHealth);
-		if (Health == 0) {
-			Die();
-		}
+		if (Health == 0) Die();
 	}
 }
 
 void ABaseUnit::OnRep_CheckForDeath() {
-	if (Health == 0) {
-		Die();
-	}
+	if (Health == 0) Die();
 }
 
-//Add OnRep_Health { Health == 0 -> Die }
 void ABaseUnit::Die() {
 	
 	//Remove Selection Sprite (All Network Roles)
@@ -591,7 +540,6 @@ void ABaseUnit::Die() {
 }
 
 void ABaseUnit::Die_InvalidateAndDestroyAI() {
-
 	AAIController* AIController = Cast<AAIController>(GetController());
 	CurrentAction = FAction();
 	if (AIController != nullptr) {
@@ -671,9 +619,7 @@ void ABaseUnit::PostMovementAction() {
 
 bool ABaseUnit::DoneCurrentAction() {
 	check(HasAuthority());
-	if (CurrentAction.Action_Type == "") {
-		return true;
-	}
+	if (CurrentAction.Action_Type == "") return true;
 	return false;
 }
 
@@ -690,7 +636,6 @@ void ABaseUnit::Tick(float DeltaTime) {
 void ABaseUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
 }
 
 /*******************************
