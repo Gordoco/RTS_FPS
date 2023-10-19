@@ -9,7 +9,7 @@
 #include "BaseBrain.generated.h"
 
 /**
- *
+ * Actor component meant to store AI interface with AIQueue ADT
  */
 UCLASS(Blueprintable, BlueprintType)
 class RTS_FPS_API UBaseBrain : public UObject
@@ -17,8 +17,16 @@ class RTS_FPS_API UBaseBrain : public UObject
 	GENERATED_BODY()
 
 public:
+	/**
+	* #### SetOwner()
+	* Sets the owning Character for the brain
+	*/
 	void SetOwner(ACharacter* inOwner);
 
+	/**
+	* FinishedCycle()
+	* 
+	*/
 	virtual void FinishedCycle();
 
 	UPROPERTY(BlueprintReadOnly, Category = "Team")

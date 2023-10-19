@@ -8,7 +8,7 @@
 #include "AttackActionData.generated.h"
 
 /**
- * 
+ * Inherited ActionData class for attack actions and their additional required information
  */
 UCLASS()
 class RTS_FPS_API UAttackActionData : public UActionData
@@ -16,12 +16,28 @@ class RTS_FPS_API UAttackActionData : public UActionData
 	GENERATED_BODY()
 
 public:
+	/**
+	* #### UAttackActionData()
+	* Default constructor implementation
+	*/
 	UAttackActionData();
 
+	/**
+	* #### SetEnemy()
+	* Mutator method for storing attack target pointer inside the object
+	*/
 	void SetEnemy(ABaseUnit* inEnemy) { Enemy = inEnemy; }
 
+	/**
+	* #### GetEnemy()
+	* Accessor method for internal Enemy pointer
+	*/
 	ABaseUnit* GetEnemy() { return Enemy; }
 protected:
+	/**
+	* #### Enemy
+	* Internal BaseUnit pointer
+	*/
 	UPROPERTY()
 		ABaseUnit* Enemy;
 
