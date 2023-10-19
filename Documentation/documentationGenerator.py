@@ -15,7 +15,7 @@ templateString = "# " + projectName + " **__Documentation__**\n\n## **Source Cod
 # SOURCE CODE FOLDER GOES HERE, RECURSIVELY SEARCHS SUB DIRECTORIES TO FIND ALL CODE FILES
 sourceFolder = "C:/Users/gordo/OneDrive/Documents/Unreal Projects/RTS_FPS/Source/RTS_FPS/"
 
-newFile = open("Main_Generated.md", "w")
+newFile = open("../README.md", "w")
 newFileContents = templateString
 
 # LANGUAGE SPECIFIC LIST OF COMMENT STRINGS
