@@ -74,7 +74,6 @@ FVector AFPSCharacter::SpreadHitTransform(FVector IdealHit) {
 
 	if (firstShotTimer == firstShotTimer_Max) {
 		firstShotTimer -= 0.01f;
-		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "FIRST SHOT");
 		return IdealHit;
 	}
 	firstShotTimer = firstShotTimer_Max - 0.01;
