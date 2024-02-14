@@ -11,7 +11,7 @@ void URTS_FPSObjectPool::Initialize(int numObjects, TSubclassOf<AActor> objectCl
 	Pool = new AActor*[numObjects];
 	for (int i = 0; i < numObjects; i++) {
 		Pool[i] = GetWorld()->SpawnActor<AActor>(objectClass, FTransform::Identity);
-		Pool[i]->SetActive(false);
+		//Pool[i]->SetActive(false);
 	}
 	count = numObjects;
 }

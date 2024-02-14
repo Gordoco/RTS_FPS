@@ -119,6 +119,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "EndOfGame")
 		void ActivateUnitTracker();
 
+	UFUNCTION(BlueprintCallable, Category = "Stats")
+		int GetNumberOfUnitsTeam(int teamIndex);
+
 	UFUNCTION(BlueprintCallable, Category = "Network|Test")
 		void StartOnlineGame(bool bLAN);
 

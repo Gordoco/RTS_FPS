@@ -23,6 +23,10 @@ void URTS_FPSGameInstance::Shutdown() {
 	UUnitTracker::Empty();
 }
 
+int URTS_FPSGameInstance::GetNumberOfUnitsTeam(int teamIndex) {
+	return UUnitTracker::GetTeamData(teamIndex).Units.Num();
+}
+
 void URTS_FPSGameInstance::ClearUnitTracker() {
 	UUnitTracker::Empty();
 	UUnitTracker::bActive = false;
